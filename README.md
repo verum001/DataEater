@@ -29,7 +29,18 @@ https://github.com/verum001/DataEater/releases/download/v1.1.0/DataEater-1.1.0.a
 
 https://github.com/verum001/DataEater/releases/download/v1.1.0/FAA_Aviation_Maintenance_General_and_Powerplant_2023.dataeater
 
-Install apk, start the program, grant permission. Place database in /sdcard/DataEater folder.
+Install apk, start the program, grant permission. Place database in /sdcard/DataEater folder. Ask questions with the database turned on: 
+
+“What can cause an aircraft engine to run rough at idle?”
+“What are the possible causes of low oil pressure?”
+“What should I check if an engine is overheating?”
+“What can cause excessive oil consumption?”
+“What are the symptoms of an overly rich fuel-air mixture?”
+“What could cause low compression in a cylinder?”
+“What should be inspected if a spark plug repeatedly fouls?”
+“What are possible causes of abnormal engine vibration?”
+“How can I identify an ignition-system problem?”
+“What could cause an engine to hesitate during acceleration?”
 
 ## See it in action
 
