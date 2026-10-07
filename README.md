@@ -19,6 +19,15 @@
 Technical manuals are the first major use case, but DataEater is designed around a broader idea: **one application, many specialized knowledge databases.**
 
 Potential database topics include equipment documentation, electronics references, scientific material, company documentation, books and other document knowledge. These are intended use cases; the public demonstration currently covers invented equipment information.
+Download the Android app:
+
+https://github.com/verum001/DataEater/releases/download/v1.1.0/DataEater-1.1.0.apk
+
+Download test database here :
+
+https://github.com/verum001/DataEater/releases/download/v1.1.0/FAA_Aviation_Maintenance_General_and_Powerplant_2023.dataeater
+
+Install apk, start the program, grant permission. Place database in /sdcard/DataEater folder.
 
 ## See it in action
 
