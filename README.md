@@ -159,7 +159,7 @@ DataEater does not replace manufacturer documentation, official procedures, prof
 
 **Current public preview: v1.1.0 — October 2026**
 
-DataEater is under active development. This preview has been prepared locally; the repository and release have not been uploaded by the development assistant. GitHub will record the publication date when the creator uploads them.
+DataEater is under active development. This repository is the official public project page for the current DataEater preview.
 
 [PROVENANCE.md](PROVENANCE.md) records public artifact hashes and the scope of the published release. The original development history is retained privately because earlier commits contain implementation details that are not part of this public repository.
 
