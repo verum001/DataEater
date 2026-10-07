@@ -3,209 +3,86 @@
 </p>
 
 <p align="center">
-  <strong>Turn documents into specialized, offline AI knowledge.</strong><br>
-  Ask questions. Get answers from your data. Trace them back to the source.
+  <strong>Ask your documents. Get answers on your phone.</strong><br>
+  Your data. Your device. Your AI.
 </p>
 
 <p align="center">
-  <a href="releases/README.md">Download & Installation</a> ·
-  <a href="demo/example-workflow.md">Demo</a> ·
-  <a href="docs/supported-devices.md">Supported Devices</a> ·
+  <a href="https://github.com/verum001/DataEater/releases/download/v1.1.0/DataEater-1.1.0.apk">Download Android app</a> ·
+  <a href="https://github.com/verum001/DataEater/releases/download/v1.1.0/FAA_Aviation_Maintenance_General_and_Powerplant_2023.dataeater">Download test database</a> ·
+  <a href="docs/supported-devices.md">Supported devices</a> ·
   <a href="CHANGELOG.md">Changelog</a>
 </p>
 
-**DataEater is a local AI knowledge engine for Android.** It lets you query specialized document databases using on-device AI, without sending your questions or document content to a cloud AI service.
+**DataEater is an Android app that answers questions using your document databases and AI running on your phone.** Once a model and database are downloaded, you can ask questions without an internet connection. Your questions and document content stay on your device.
 
-Technical manuals are the first major use case, but DataEater is designed around a broader idea: **one application, many specialized knowledge databases.**
+**One app, many knowledge databases.** Use it with technical manuals, electronics references, company documentation, books or other document collections prepared for DataEater.
 
-Potential database topics include equipment documentation, electronics references, scientific material, company documentation, books and other document knowledge. These are intended use cases; the public demonstration currently covers invented equipment information.
+## Get started
 
+1. **Install the app.** Download the APK above, open it and allow installation when Android asks.
+2. **Download AI.** Open DataEater, allow storage access, then tap **Download AI**. Choose a model, wait for the download and tap **Use model**.
+3. **Add a database.** Download the `.dataeater` file above. Using your phone’s file manager, move it into the **DataEater** folder in internal storage (`/sdcard/DataEater/`).
+4. **Select it.** Open **Settings → database selection**, tap **Scan again** and choose the database.
+5. **Ask a question.** Turn **Database** on to use the selected documents. Turn it off for general AI chat.
 
-**Download the Android app:**
+Database files are downloaded through your browser and added manually in this preview.
 
-https://github.com/verum001/DataEater/releases/download/v1.1.0/DataEater-1.1.0.apk
+**Requirements:** a supported 64-bit Android 8.0+ device, enough storage and memory for your chosen model. Encrypted databases require Android 12+. See [supported devices](docs/supported-devices.md).
 
-**Download test database here:**
+## Try the aviation database
 
-https://github.com/verum001/DataEater/releases/download/v1.1.0/FAA_Aviation_Maintenance_General_and_Powerplant_2023.dataeater
+The test database combines the FAA’s **2023 General and Powerplant Aviation Maintenance Technician Handbooks**. It contains text and PDF page references; diagram images are not included. It is an unofficial conversion, not an FAA-endorsed product.
 
-Install apk, start the program, grant permission. Place database in /sdcard/DataEater folder. Ask questions with the database turned on: 
+Example questions:
 
-“What can cause an aircraft engine to run rough at idle?”
-“What are the possible causes of low oil pressure?”
-“What should I check if an engine is overheating?”
-“What can cause excessive oil consumption?”
-“What are the symptoms of an overly rich fuel-air mixture?”
-“What could cause low compression in a cylinder?”
-“What should be inspected if a spark plug repeatedly fouls?”
-“What are possible causes of abnormal engine vibration?”
-“How can I identify an ignition-system problem?”
-“What could cause an engine to hesitate during acceleration?”
+- What can cause an aircraft engine to run rough at idle?
+- What are the possible causes of low oil pressure?
+- What should I check if an engine is overheating?
+- What can cause excessive oil consumption?
+- What could cause low compression in a cylinder?
+
+These are questions to try, not guaranteed answers. **Check the original handbook and the applicable manufacturer’s instructions before performing maintenance.**
 
 ## See it in action
 
-| Ask | Answer | Choose a database |
+| Ask | Read the answer | Choose a database |
 |---|---|---|
-| <img src="screenshots/search.png" alt="Question entered in DataEater" width="240"> | <img src="screenshots/answer.png" alt="DataEater answering from the selected database" width="240"> | <img src="screenshots/database.png" alt="Knowledge database selected in DataEater" width="240"> |
+| <img src="screenshots/search.png" alt="Question entered in DataEater" width="240"> | <img src="screenshots/answer.png" alt="Answer from the selected database" width="240"> | <img src="screenshots/database.png" alt="Database selected in Settings" width="240"> |
 
-[View an example with source references](screenshots/sources.png).
+[View source references](screenshots/sources.png) · [See the demo](demo/example-workflow.md)
 
-The screenshots are captured from the real Android application using a dedicated demonstration database with invented equipment information. No proprietary service manual, customer conversation, or private database is included.
+These screenshots use a separate demo with invented equipment information. They do not show the FAA database or private user data.
 
 ## How it works
 
 ```text
-              YOUR QUESTION
-                    │
-                    ▼
-        ┌───────────────────────┐
-        │       DATAEATER       │
-        │                       │
-        │  Knowledge Database   │
-        │          +            │
-        │    Local Retrieval    │
-        │          +            │
-        │      On-device AI     │
-        └───────────┬───────────┘
-                    │
-                    ▼
-             ANSWER + SOURCE
+Your question → Relevant database text → Local AI → Answer + source references
 ```
 
-For example:
+DataEater finds relevant text in the selected database and gives it to the local model to answer your question. References can identify the document, section and page when that information is available. If no matching information is found, the app tells you.
 
-> **“What resistance should I measure across terminals X and Y?”**
+## Features
 
-DataEater searches the selected knowledge database for relevant information and provides that information to the local AI model to construct an answer.
+- Offline AI chat and questions about documents.
+- Source references for checking answers.
+- AI model downloads with progress and cancellation.
+- Model and database selection and deletion.
+- Saved conversations and Android text selection and copy.
+- Encrypted databases with creator-issued access codes.
+- A sliding conversation panel, Help and adaptable layouts.
 
-When source metadata is available, the answer can point back to the relevant **document, section and page**.
+## Privacy and accuracy
 
-If DataEater cannot find relevant information in the selected database, it is designed to say so rather than invent a database source.
+AI and document searches run locally. Optional model downloads connect to Hugging Face; those requests do not include your questions or database text. No account, analytics or telemetry service is required. Private app data is excluded from Android system backup and device migration.
 
-## Why DataEater?
+**AI can make mistakes.** Always check important answers against their sources. General chat uses the model’s own knowledge and is not checked against a database.
 
-DataEater brings document questions and local AI together on your Android device:
+## Project and license
 
-**Your database. Your device. Your AI.**
+**Current preview: v1.1.0.** DataEater is under active development. This repository contains documentation, screenshots and app releases. The implementation source remains private. See [PROVENANCE.md](PROVENANCE.md) for release details and verification.
 
-- **Offline AI** — inference runs directly on the Android device.
-- **Local knowledge** — query imported databases without uploading their contents to an AI service.
-- **Source-aware answers** — answers can reference the documents and sections used.
-- **Specialized databases** — switch between different knowledge domains instead of tying the application to one manual or industry.
-- **No account required** — the application does not depend on a DataEater cloud account.
-- **Portable knowledge** — the long-term architecture is designed around independently created DataEater databases.
+Copyright © 2026 **Jack**. DataEater original software and public documentation are licensed under [Apache 2.0](LICENSE). See [NOTICE](NOTICE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-## What works today
+Models, source documents and databases retain their own rights and terms; the app’s Apache license does not cover their content. Only share material you have permission to distribute.
 
-DataEater is a working Android application, not a UI concept or mock-up.
-
-Current functionality includes:
-
-- Local Android AI chat.
-- Questions against imported document databases.
-- Document, section and page references when available.
-- Explicit switching between database-backed questions and general model chat.
-- Optional AI model downloads with progress, cancellation and file verification.
-- Local model and database management.
-- Remembered conversations and Android text selection.
-- Encrypted databases with creator-issued, device-bound access codes.
-- Responsive layouts for different screen and text sizes.
-- A sliding conversation panel and Help.
-
-Online database downloads are planned and are not available in this preview.
-
-## One engine, different knowledge
-
-DataEater is not intended to be tied to one type of documentation.
-
-```text
-Machinery manuals ───────┐
-Electronics references ──┤
-Scientific literature ───┤
-Company documentation ───┼──► DataEater ──► Local AI answers
-Books & reference works ──┤
-Personal knowledge ───────┤
-Specialized datasets ─────┘
-```
-
-The knowledge changes.
-
-**DataEater stays the same.**
-
-## Privacy
-
-AI inference, document retrieval and access-code verification run locally on the device.
-
-Questions and document text are not sent to a cloud AI service.
-
-There is:
-
-- no DataEater account;
-- no telemetry service;
-- no analytics service;
-- no cloud AI dependency.
-
-The application can access the internet to download optional AI models from Hugging Face. Questions and database content are not included in those model-download requests.
-
-Private application data is excluded from Android system backup and device migration.
-
-This describes DataEater's application architecture and should not be interpreted as an operating-system guarantee that an installed APK is technically incapable of networking.
-
-AI models remain subject to their respective publishers' licenses and terms.
-
-## Database ownership
-
-DataEater databases are independent from the application itself.
-
-A database creator may distribute public knowledge, private organizational knowledge, licensed material, or other content they have the right to use.
-
-DataEater also supports encrypted databases with creator-controlled access.
-
-Rights in the original documents, derived databases, AI models and DataEater application are separate.
-
-**Only import, create or distribute databases from material you have the right to use.**
-
-## Important limitations
-
-DataEater can make mistakes.
-
-A local language model may misunderstand retrieved information, omit important context or produce an incorrect answer even when relevant database information was found.
-
-For technical, safety-critical or professional work, **verify the cited source before acting on an answer**.
-
-General chat is based on the selected model's own knowledge and is not verified against a DataEater database.
-
-DataEater does not replace manufacturer documentation, official procedures, professional training or qualified judgment.
-
-## Project status
-
-**Current public preview: v1.1.0 — October 2026**
-
-DataEater is under active development. This repository is the official public project page for the current DataEater preview.
-
-[PROVENANCE.md](PROVENANCE.md) records public artifact hashes and the scope of the published release. The original development history is retained privately because earlier commits contain implementation details that are not part of this public repository.
-
-## Source availability
-
-This repository currently serves as the public home of the DataEater project, including documentation, demonstrations, screenshots and release artifacts.
-
-**The core implementation is not currently published.**
-
-Database construction, retrieval and ranking code, prompts, preprocessing pipelines and internal optimizations remain private. Components may be released separately in the future, but no future source release is promised.
-
-## License & ownership
-
-Copyright © 2026 **Jack**.
-
-DataEater original software, the released APK and original public documentation are licensed under the [Apache License 2.0](LICENSE), which permits reuse, modification and redistribution under its terms. See [NOTICE](NOTICE) for attribution. The implementation source remains unpublished.
-
-Third-party software, AI models and other dependencies remain subject to their respective licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-Rights in documents and databases used with DataEater are separate from rights in the DataEater application.
-
----
-
-<p align="center">
-  <strong>DATAEATER</strong><br>
-  Your data. Your device. Your AI.
-</p>
