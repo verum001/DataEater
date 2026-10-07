@@ -1,6 +1,6 @@
 # Resolved release dependency license inventory
 
-Prepared 7 October 2026 for the DataEater 1.1.0 APK. Model weights and Python tools are not bundled. Licenses below are declared by upstream Maven metadata; APK runtime dependencies and native transitive components retain their own terms.
+Prepared 7 October 2026 for the DataEater 1.2.0 APK. Model weights and Python tools are not bundled. Licenses below are declared by upstream Maven metadata; APK runtime dependencies and native transitive components retain their own terms.
 
 | Component | Upstream declared license |
 |---|---|
