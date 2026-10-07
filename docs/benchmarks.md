@@ -37,7 +37,4 @@ These findings concern the tested conversions and this phone. They do not prove
 that the model families fail on every runtime or device. Larger untested models
 are deferred, not classified as broken.
 
-247 app unit tests and nine builder test scripts passed. Signed release startup
-and model selection were checked on the phone. Tests cover a small question set
-on one device; they do not certify maintenance advice or all Android devices.
-Verify important answers against the source document.
+
