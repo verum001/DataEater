@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/dataeater1.jpg" alt="DataEater — Feed your eater" width="100%">
+  <img src="assets/dataeater2.jpg" alt="DataEater — Feed your eater" width="100%">
 </p>
 
 <p align="center">
