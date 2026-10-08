@@ -4,7 +4,6 @@
 
 <p align="center">
   <strong>Ask your documents. Get answers on your phone.</strong><br>
-  Your data. Your device. Your AI.
 </p>
 
 <p align="center">
