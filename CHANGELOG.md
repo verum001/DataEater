@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.4.2 — 8 October 2026
+
+- Delete conversations with the trash button in the side panel and a confirmation.
+- Deleting the current conversation selects another; deleting the last opens a blank conversation.
+- Deletion waits until the app is idle. Storage failures keep the conversation visible for retry.
+
+## 1.4.1 — 8 October 2026
+
+- Reduced the regular input budget for Qwen 4B.
+- Retry local-model input overflow with less history and fewer complete database passages.
+- Retain references for passages actually supplied and explain when a passage cannot fit.
+
+## 1.4.0 — 8 October 2026
+
+- Create databases on Android from selectable-text PDFs, text, Markdown and folders.
+- Review extraction and rebuild with original page references.
+- Save or import databases, create protected copies, manage signing keys and issue access codes.
+- Offline builder help, progress and cancellation; compatible Linux builder workflows.
+- No OCR or diagram reconstruction; extracted text and input file limits apply.
+
+## 1.3.1 — 8 October 2026
+
+- Database strictness: Strict, Balanced and Flexible.
+- Reply length: Short, Normal and Detailed.
+- Online model selection in the composer.
+
+## 1.3.0 — 8 October 2026
+
+- Optional online AI through OpenRouter using a personal API key.
+- Local AI remains available offline; online mode shares selected messages and optional document excerpts with external providers.
+
 ## 1.2.0 — 7 October 2026
 
 - Chat memory for recent exchanges and short facts within each conversation.
