@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/verum001/DataEater/releases/download/v1.2/DataEater-1.2.0.apk">Download Android app</a> ·
+  <a href="https://github.com/verum001/DataEater/releases/download/v1.3.0/DataEater-1.3.0.apk">Download Android app</a> ·
   <a href="https://github.com/verum001/DataEater/releases/download/v1.2/FAA_Aviation_Maintenance_General_and_Powerplant_2023_optimized.dataeater">Download test database</a> ·
   <a href="docs/supported-devices.md">Supported devices</a> ·
   <a href="CHANGELOG.md">Changelog</a>
