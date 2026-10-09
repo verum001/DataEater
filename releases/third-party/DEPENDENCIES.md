@@ -1,5 +1,7 @@
 # Resolved release dependency license inventory
 
+This historical inventory describes the 1.2.0 APK. Starting with 1.4.0, the Android builder also uses PDFBox-Android 2.0.27.0 and Bouncy Castle 1.72. Their upstream license/resource notices are embedded under `assets/builder/notices/` in each archived 1.4 APK and included in that release's notices archive. See [third-party notices](../../THIRD_PARTY_NOTICES.md). This historical table is not a complete new inventory for 1.4.
+
 Prepared 7 October 2026 for the DataEater 1.2.0 APK. Model weights and Python tools are not bundled. Licenses below are declared by upstream Maven metadata; APK runtime dependencies and native transitive components retain their own terms.
 
 | Component | Upstream declared license |
