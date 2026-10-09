@@ -1,6 +1,6 @@
 # Project and release record
 
-DataEater — Jack — latest prepared preview 1.4.2, built 8 October 2026. GitHub Releases records actual publication dates; preparation dates are not publication dates.
+DataEater — Jack — preview 1.4.2, built 8 October 2026. Versions 1.4.0, 1.4.1 and 1.4.2 were published on 9 October 2026 (Europe/Moscow). GitHub records the corresponding UTC timestamps; build dates and publication dates are separate.
 
 This repository contains product documentation, demonstration screenshots and
 app releases. Android implementation and development history remain private.

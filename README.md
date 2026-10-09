@@ -112,7 +112,7 @@ Document search and database creation run locally. Local AI keeps questions and 
 
 ## Project and license
 
-**Latest prepared preview: v1.4.2.** See [GitHub Releases](https://github.com/verum001/DataEater/releases) for published downloads and [release notes](releases/README.md) for version details. DataEater is under active development. This repository contains documentation, screenshots and app releases. The implementation source remains private. See [PROVENANCE.md](PROVENANCE.md) for release details and verification.
+**Current preview: v1.4.2.** See [GitHub Releases](https://github.com/verum001/DataEater/releases) for published downloads and [release notes](releases/README.md) for version details. DataEater is under active development. This repository contains documentation, screenshots and app releases. The implementation source remains private. See [PROVENANCE.md](PROVENANCE.md) for release details and verification.
 
 Copyright © 2026 **Jack**. DataEater original software and public documentation are licensed under [Apache 2.0](LICENSE). See [NOTICE](NOTICE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
