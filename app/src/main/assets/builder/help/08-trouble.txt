@@ -1,0 +1,15 @@
+Troubleshooting and privacy
+
+No text found: the PDF may be scanned, blank or use unsupported extraction. Run OCR elsewhere and check the text. No OCR or diagram reconstruction is included in this builder.
+
+Review rejected: restore untouched originals and review.json. Keep every original page marker in the reviewed copies, without commentary or Markdown fences. Do not bypass validation by building the whole export folder.
+
+File access failed: choose it again in Android's file picker. Building uses the selected documents and needs no broad storage permission. Use in DataEater needs access to the DataEater folder; Save file lets you choose the destination yourself.
+
+Operation slow or too large: split the document collection or use the Linux builder. Progress is not a completion percentage. Cancelling can wait for a PDF operation to reach a checkpoint. Processing is kept off the interface thread.
+
+Incomplete save: Android document providers control external files. A cancelled or failed Save file attempts to remove the new incomplete file, but a provider may refuse deletion. Check the chosen destination before sharing a result. Earlier app workspaces, keys and databases remain intact.
+
+No model API, OCR service, telemetry or automatic upload is used by the builder. Review text and keys are stored privately and excluded from Android backups. Only deliberate Save file or key-backup actions export data. Clipboard tools may retain copied text.
+
+Only distribute documents and database content you have permission to share. Check technical corrections against the original source. A verified file is not proof that an AI answer or maintenance instruction is accurate.

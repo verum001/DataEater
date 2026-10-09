@@ -1,0 +1,13 @@
+Building databases
+
+Select PDF, TXT, MD or Markdown files, or a document folder. The builder extracts text and makes searchable passages. It does not train a model or automatically correct technical information.
+
+Name identifies the database in DataEater. Advanced options include description, language code, document publisher, content licence and passage size. Language records the source language; it does not translate text. Content licence records rights in the source material, not the app's software licence.
+
+Passage size normally targets 700 characters. Smaller passages may lose context; larger passages may be harder for a small model to use. Complete sentences and table rows may exceed the target. Try important questions against the original document before publishing.
+
+Scanned PDFs need OCR elsewhere. No OCR is included. Pictures, diagrams and relationships shown only by layout or arrows are not reconstructed. Even PDFs with selectable text can have broken reading order or tables. Use text review and compare extracted values, units, warnings and identifiers against the PDF.
+
+Sparse pages can be omitted, but retained passages keep original PDF page positions. Printed page labels may differ from those positions. Details reports omissions and sparse-text warnings. The phone uses PDFBox rather than the Linux builder's PyMuPDF, so reading order and passage boundaries can differ even though database files are compatible.
+
+Phone building is limited to 12 MB of extracted source text per collection and 256 MB per input file. For larger or very complex documents, split the collection or use the Linux builder. Existing files are never overwritten by Use in DataEater; another filename is chosen.

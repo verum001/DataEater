@@ -1,0 +1,13 @@
+Reviewing extracted text
+
+Prepare text review creates untouched originals, editable batches, source fingerprints, page metadata and an LLM prompt. No text is sent online. Whole pages stay together; a long page can exceed the selected batch size.
+
+Save review ZIP exports the workspace. Save review prompt exports LLM_PROMPT.txt. Give that prompt and one original batch to a large LLM only when you are allowed to share the document. If needed, supply the matching PDF pages. Ask for extraction corrections only, never invented facts or procedures.
+
+Choose a batch, then Original to read and copy its untouched text. Edit changes the reviewed copy inside DataEater. Import edit replaces that reviewed copy with a complete checked plain-text file. Keep every === PAGE n === marker exactly as supplied and in order. Empty, missing or renumbered pages are refused. Notes stores uncertainties separately from the database text.
+
+Check numbers, decimal points, units, warnings and part identifiers against the PDF. A valid marker does not prove a correction is accurate. Build reviewed text reports how many pages have numeric changes.
+
+Build reviewed text accepts an existing app workspace, a review ZIP or a review folder made by the Linux builder. A ZIP can contain the workspace contents or one enclosing folder. Do not import a folder containing several reviews. Keep original/ and review.json unchanged.
+
+To use a phone review on Linux, unzip it and run build-reviewed on the folder containing review.json. Never run a direct build on the whole review folder: it would mix originals and edited copies. Very large individual batches may need editing on Linux; the phone editor/import accepts up to 2 MB per batch.

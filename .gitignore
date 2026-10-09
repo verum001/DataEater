@@ -1,0 +1,83 @@
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Android Studio / IntelliJ project files.
+#
+# The whole folder, not just the caches: .idea/misc.xml names the local JDK
+# ("jbr-25") and where its output goes, which is true of this machine and
+# nobody else's. It is IDE state, not source.
+/.idea/
+*.iml
+
+# Python byte-code cache. Never source, always machine-specific.
+__pycache__/
+*.pyc
+*.pyo
+
+# AI model files (large, downloaded separately - never commit)
+*.litertlm
+DataEater-models/
+
+# NEVER commit these. See docs/SECURITY.md
+*.key
+*.pem
+*.p12
+*.jks
+*private*key*
+*secret*
+
+# Python virtual environment for the builder tools
+tools/.venv/
+
+# Real manuals are copyrighted and must never enter this repository.
+# The builder reads them from wherever the user keeps them.
+*.pdf
+
+# Publication safety: generated files and user material are never source.
+.kotlin/
+**/build/
+*.apk
+*.aab
+*.apks
+*.gguf
+*.lic
+*.keystore
+.env
+.env.*
+.aws/
+.codex/
+.agents/
+*.dataeater
+!dataeater/databases/demo.dataeater
+.venv/
+venv/
+review/
+unlock-code*.txt
+request-code*.txt
+
+# Local-only instructions and private project state
+AGENTS.md
+CLAUDE.md
+AI_INSTRUCTIONS.md
+AI_instr/
+.agents/
+.codex/
+.github/copilot-instructions.md
+.github/instructions/
+research/
+research-*/
+benchmarks/
+local.properties
+.github-private/

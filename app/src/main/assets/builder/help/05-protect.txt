@@ -1,0 +1,11 @@
+Protecting databases
+
+Protect database creates a locked copy of an unlocked database. Choose or import your signing key, and enter the creator name and contact. If the private signing key is kept elsewhere, paste only its public key in Advanced options. The public key is safe to publish and lets DataEater verify access codes.
+
+The encrypted database can be saved and shared. Its content key stays in private app storage, encrypted using Android's keystore. Back up content key explicitly exports a standard .secret file for use on Linux. Keep that backup secure: anyone holding the content key can decrypt the database.
+
+Advanced options can reuse an existing content key. New key for this copy generates a different key; old access codes do not unlock the new copy. Earlier app keys and databases are preserved. Give each version a distinct database name where possible, and keep the matching key and signing key with your private release records.
+
+Never publish .secret or .key files. Export secure backups before uninstalling DataEater or resetting the phone. An app-only key cannot be recovered after uninstalling. Android backups exclude private builder data.
+
+Encryption protects stored content and enables device-bound access codes. It does not prevent an authorized reader from copying displayed information.

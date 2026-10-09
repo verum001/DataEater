@@ -1,0 +1,27 @@
+# Dependencies for dataeater-builder (the Linux tool, not the Android app).
+#
+# Install into a private virtual environment so the system Python is
+# never touched:
+#     python3 -m venv tools/.venv
+#     tools/.venv/bin/pip install -r tools/requirements.txt
+#
+# Keep this list as short as possible. Every dependency is something we
+# must maintain and trust.
+
+# Text and image extraction from PDF, including page numbers.
+#   https://pymupdf.readthedocs.io/
+pymupdf>=1.24
+
+# OCR for scanned PDFs is handled separately by OCRmyPDF + Tesseract,
+# which are system packages rather than Python libraries:
+#     sudo apt install ocrmypdf tesseract-ocr
+
+# Signing and the payload encryption: ECDSA P-256 for licences, AES-256-GCM
+# for the database contents.
+#   https://cryptography.io/
+#
+# Needed by every test that touches a locked database. Without it the builder
+# refuses to encrypt and prints an error telling you to install this file —
+# which could not help, because this line was missing. Found by building a
+# clean virtualenv from this file and running the tests in it.
+cryptography>=42.0

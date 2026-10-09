@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- User-initiated model downloads and optional OpenRouter online AI.
+         On-device inference, retrieval, building and licensing remain local. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Reading the visible folder /sdcard/DataEater, where the user puts
+         AI models. On Android 11+ this is the "all files access"
+         permission. DataEater needs to read whole model files, which is why
+         it is declared openly instead of hiding behind a file picker.
+         See SECURITY.md. -->
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+    <!-- Only needed on older Android; newer versions use the permission above. -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <!-- Deleting a model in the visible folder on Android 8–10 only. -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+
+    <queries>
+        <intent>
+            <action android:name="android.settings.MANAGE_APP_ALL_FILES_ACCESS_PERMISSION" />
+        </intent>
+    </queries>
+
+    <application
+        android:usesCleartextTraffic="false"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.DataEater">
+        <!-- Needed by LiteRT-LM when it runs the model on the GPU.
+             required="false" means the app still installs on devices that
+             do not have these libraries. -->
+        <uses-native-library
+            android:name="libvndksupport.so"
+            android:required="false" />
+        <uses-native-library
+            android:name="libOpenCL.so"
+            android:required="false" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.DataEater"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- The ECDH spike activity used to live here and has been deleted.
+             The manifest entry was left behind by mistake. A manifest that
+             names a class which does not exist can fail install-time
+             verification on a real phone, so it must not stay. -->
+    </application>
+
+</manifest>

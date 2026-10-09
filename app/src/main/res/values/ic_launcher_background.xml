@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solid background sampled from the corners of the logo image. -->
+<resources>
+    <color name="ic_launcher_background">#FFB5DC</color>
+</resources>

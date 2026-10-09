@@ -1,0 +1,9 @@
+Getting started
+
+Open Settings and tap Create database at the bottom. The task chooser includes all seven builder tasks. Everything happens on your phone: no account, model or network connection is needed to build a database.
+
+Choose Build database, add PDF, text or Markdown documents, enter a readable name and press Build database. Choose folder reads supported files in that folder and its subfolders. Check Details for warnings. Save file uses Android's file picker. Use in DataEater adds the result to the app's database list when folder access is available.
+
+The moving progress bar means work is running; it does not estimate a percentage. Cancel stops the operation at a safe checkpoint. Existing databases, keys and review workspaces are kept. A complex PDF page can take time before cancellation is acknowledged.
+
+Advanced options contain metadata and passage sizes. Help explains each workflow. Forms are retained across ordinary screen rotation, but unsaved form data can be lost if Android terminates the app. Review workspaces and publisher keys stay in app storage; uninstalling the app removes them. Export secure backups before uninstalling.

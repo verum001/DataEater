@@ -1,5 +1,11 @@
 # Changelog
 
+## Source publication — 9 October 2026
+
+- Publish original Android source, tests, build configuration and technical documentation under Apache-2.0.
+- Update Linux Builder source to include the 0.4.0 desktop and packaging.
+- Add build/contribution guidance and distinguish current source from unchanged older APKs.
+
 ## 1.4.2 — 8 October 2026
 
 - Delete conversations with the trash button in the side panel and a confirmation.
@@ -54,9 +60,9 @@ on the device and question; check important answers against their sources.
 - Responsive layouts and Android text-size support.
 - Encrypted databases with device-bound creator access codes.
 - Disabled private app-data cloud backup and migration; removed response-text logging.
-- Apache 2.0 licensing selected for original software and public documentation; source remains unpublished.
+- Apache 2.0 licensing selected for original software and public documentation; source was not published with this earlier release.
 
-The source remains private. Public documentation and the APK form the project showcase. Model downloads and online database downloads are separate features: the latter is not yet implemented.
+This earlier release published documentation and the APK before Android source publication. Model downloads and online database downloads are separate features: the latter is not yet implemented.
 
 ## Earlier private development — October 2026
 

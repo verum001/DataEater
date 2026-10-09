@@ -1,0 +1,9 @@
+Signing keys
+
+Create signing key generates an ECDSA P-256 key pair. The private key is stored behind an Android-keystore wrapping key; the public key appears in Details and is safe to share. New signing keys keep old keys intact.
+
+Back up signing key asks for confirmation before exporting a .key file. The exported file contains private material and is compatible with the Linux builder. Keep it in a secure backup, never in a GitHub release or customer message. Import signing key reads a Linux-generated .key file and stores it privately in the app.
+
+A locked database carries the public key of its signing key. Issue access code refuses a different signing key. Keep older keys to continue issuing codes for older databases. Losing a private signing key means you cannot issue valid new codes for databases tied to its public key.
+
+Android system backups exclude publisher keys and review content. Uninstalling removes the app's stored keys; export backups first. A public key alone cannot sign access codes or reconstruct the private key.

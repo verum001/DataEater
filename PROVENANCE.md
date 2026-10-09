@@ -2,9 +2,13 @@
 
 DataEater — Jack — preview 1.4.2, built 8 October 2026. Versions 1.4.0, 1.4.1 and 1.4.2 were published on 9 October 2026 (Europe/Moscow). GitHub records the corresponding UTC timestamps; build dates and publication dates are separate.
 
-This repository contains product documentation, demonstration screenshots and
-app releases. Android implementation and development history remain private.
-The separate DataEater Builder repository contains the original builder source.
+This repository now publishes the original Android implementation, tests, build
+configuration and documentation under Apache-2.0. The separate DataEater Builder
+repository contains the Linux desktop/CLI source. The default branch includes
+conversation-save/checkpoint and archive-limit changes after the APK below.
+Earlier documentation-only release tags cannot be used to build the Android app;
+source publication does not claim that current source reproduces the older APK.
+Original private development history and research records are not included.
 
 ## Release identity
 

@@ -1,0 +1,11 @@
+Device access codes
+
+A customer opens a locked database and sends the phone's Request Code. Issue access code needs that request code, the locked database, its matching content key and the signing key corresponding to the database's public key.
+
+The builder checks that both keys belong to the database. Expiry defaults to never. Advanced options accepts a duration such as 30d, 90d or 1y, or a date in YYYY-MM-DD form. The resulting code is signed and works only on the requesting device.
+
+Save file exports a .lic file. Send that file only to the customer. They save it in DataEater/Lic in internal phone storage and select it in the Android app. View access code displays text that can be selected and copied if a file cannot be used.
+
+Access codes contain wrapped content-key material. Keep them out of public screenshots, repositories and releases. The app does not send codes or documents automatically and does not manage payments.
+
+If unlocking fails, check the database version, matching content key, signing key, request code and expiry. Imported Linux keys and access codes use the same portable formats as those created on the phone.

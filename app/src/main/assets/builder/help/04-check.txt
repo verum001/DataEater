@@ -1,0 +1,9 @@
+Checking databases
+
+Check database verifies the format, manifest fingerprints, document count, passage count, IDs and source references. Details shows document names, a sample passage and counts of oversized or exact repeated passages for an unlocked database.
+
+A long passage can be legitimate when a paragraph or table row must stay together. Repetition can reflect repeated headers or real repeated instructions. Do not delete content solely because it appears in this report.
+
+Locked databases can be checked without exposing their text. Their readable manifest identifies the creator, public signing key and encryption. The text remains encrypted.
+
+Fingerprint checks detect damage relative to the manifest. They do not authenticate a publisher, prove ownership, verify technical accuracy or guarantee model answers. Check important facts against the original manual. A file that fails verification should be rebuilt from known-good documents before distribution.

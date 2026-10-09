@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+"""Compatibility launcher for the independent DataEater Builder project."""
+import os
+import sys
+from pathlib import Path
+launcher = Path(__file__).resolve().parents[2] / "DataEater_builder/tools/dataeater-builder"
+if not launcher.is_file():
+    sys.exit("DataEater Builder is a separate project. Place DataEater_builder beside DataEater.")
+os.execv(sys.executable, [sys.executable, str(launcher)] + sys.argv[1:])
