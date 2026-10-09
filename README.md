@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/dataeater1.jpg" alt="DataEater — Feed your eater" width="100%"></p>
+<p align="center"><img src="assets/dataeater2.jpg" alt="DataEater — Feed your eater" width="100%"></p>
 
 # DataEater
 
@@ -98,4 +98,4 @@ Copyright 2026 Jack. Original code, documentation and artwork are licensed under
 [Apache License 2.0](LICENSE), with attribution in [NOTICE](NOTICE). You can inspect,
 modify and redistribute the source under that license. Third-party code keeps
 its own terms; see [third-party notices](THIRD_PARTY_NOTICES.md). Model weights and
-input documents have separate licenses. The invented HF-4500 demo is CC0-1.0.
+input documents have separate licenses. 
