@@ -184,6 +184,7 @@ data class SettingsState(
     val onUseLocal: () -> Unit = {},
     val onRemoveOpenRouterKey: () -> Unit = {},
     val onCreateDatabase: () -> Unit = {},
+    val onDownloadDatabases: () -> Unit = {},
 )
 
 /** Which of the two areas at the top is open. */
@@ -546,6 +547,9 @@ private fun DatabaseSelectionCard(
             )
 
             ExpandedArea(visible = isOpen) {
+                OutlinedButton(onClick = state.onDownloadDatabases,
+                    enabled = !state.isBusy && !state.isDatabaseBusy,
+                    modifier = Modifier.fillMaxWidth()) { Text("Download databases") }
                 if (!state.hasStorageAccess) PermissionNeeded(state)
                 if (state.databases.isNotEmpty()) {
                     OutlinedButton(

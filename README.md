@@ -18,7 +18,8 @@ document excerpts requires a separate opt-in.
 1. Install the APK from GitHub Releases. Android may ask to allow installation.
 2. Open the app, grant storage access and choose **Download AI**, or configure
    **Settings → AI connection → OpenRouter** with your own API key.
-3. Create a database through **Settings → Create database**, or put an existing
+3. Download manuals through **Settings → Database Selection → Download databases**,
+   create a database through **Settings → Create database**, or put an existing
    `.dataeater` file in the DataEater folder in internal storage.
 4. Select the database and model in Settings. Turn **Database** on to ask about
    the documents, or off for general chat.
@@ -36,7 +37,8 @@ bundled. See [supported devices](docs/supported-devices.md).
 - Short/Normal/Detailed reply preferences.
 - Model downloads with checksums, visible progress and cancellation.
 - Saved conversations, separate per-session choices, text copy and confirmed deletion.
-- Database creation, editable extraction review and archive inspection on Android.
+- Database downloads with expandable descriptions, checksums and versioned files.
+- Simple database creation and manual LLM optimisation on Android.
 - Encrypted databases and signed, device-bound creator-issued access codes.
 - Light/dark themes, text sizes and adaptable layouts.
 
@@ -47,7 +49,7 @@ Scanned PDFs need external OCR; diagrams are not reconstructed as knowledge.
 ## Privacy
 
 Local chat, retrieval and database building do not upload documents. Model
-downloads contact Hugging Face without sending questions. Online mode requires
+downloads contact Hugging Face and database downloads contact GitHub without sending questions. Online mode requires
 your own OpenRouter key and sends online messages to OpenRouter and its selected
 provider. Local chat history is not replayed online; document excerpts are off
 unless sharing is enabled. Online mode must be selected again after restarting.
@@ -104,3 +106,7 @@ input documents have separate licenses.
 Choose **All unlocked databases** in Chat, Search or Settings to search all readable databases together. Locked files are included only when their stored Unlock Code passes verification; excluded files are named on screen. Each citation includes the originating database filename and document. Choose a single database to narrow the scope. The collection is rebuilt when files are refreshed. Large collections are refused with a message to select one database.
 
 Versioned manual collections are available in [DataEater-Databases](https://github.com/verum001/DataEater-Databases); each collection retains its source-specific terms.
+
+### Download and create databases
+
+Settings → Download databases lists the latest published versions in DataEater-Databases. Settings → Create database offers file selection, optional encryption and a manual LLM optimisation ZIP. Private database keys and licence generation are available in the secret key vault below the creation controls. See [database downloads](docs/DATABASE_DOWNLOADS.md) and [Android builder](docs/ANDROID_BUILDER.md).

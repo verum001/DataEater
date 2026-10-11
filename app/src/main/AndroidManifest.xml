@@ -5,6 +5,9 @@
     <!-- User-initiated model downloads and optional OpenRouter online AI.
          On-device inference, retrieval, building and licensing remain local. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Reading the visible folder /sdcard/DataEater, where the user puts
          AI models. On Android 11+ this is the "all files access"
@@ -40,6 +43,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.DataEater">
+        <service android:name=".builder.BuilderService" android:exported="false" android:foregroundServiceType="dataSync" />
         <!-- Needed by LiteRT-LM when it runs the model on the GPU.
              required="false" means the app still installs on devices that
              do not have these libraries. -->

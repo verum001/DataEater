@@ -45,3 +45,9 @@ data and unpublished research artifacts are outside the source distribution.
 ## D-024 — Search across open databases (11 October 2026)
 
 An explicit All unlocked databases selection forms one in-memory search collection for text search and RAG. Source and passage IDs are namespaced by collection position, preserving original files and preventing citation collisions. Stored unlock codes are verified while opening; excluded locked files are named. Unreadable files fail opening with their filename rather than disappearing silently. Collection payload is capped at 64 MiB of passage/navigation UTF-8 and 100,000 passages; this is an input cap, not a guarantee of peak RAM. Refresh replaces the collection.
+
+## D-025 — Database catalogue and simplified creation (11 October 2026)
+
+Database downloads use the existing public database repository's release API rather than a fixed list embedded in the APK. Android DownloadManager persists transfers; verification and atomic publication precede database discovery. The catalogue rejects missing checksums and unexpected origins rather than silently falling back to an older asset.
+
+The simple builder composes existing format-v1 extraction, review and encryption operations. Original documents accompany manual LLM review exports; source files and parsed originals are fingerprinted, and page identities are retained. A local dataSync foreground service supports background preparation without adding a dependency. Publisher secrets remain in the private encrypted vault, separate from review ZIPs. Database-specific content keys link to their encrypted artifact and matching signing key for licence issuance. Key removal affects future issuance, not existing device-bound codes.

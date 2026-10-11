@@ -1,3 +1,21 @@
+0.1.6.1
+• Database downloads no longer depend on GitHub API quotas.
+• Expand database descriptions when needed.
+• Download databases from Database Selection.
+• Updated Help for downloading, creation and private keys.
+
+0.1.6.0
+• Updated version naming.
+• Fixed database download permission and refresh handling.
+• Removed More tools from database creation.
+
+1.6.0
+• Download the latest manual databases.
+• Create databases with a simpler screen.
+• Prepare original files and parsed text for LLM optimisation.
+• Manage private database keys and generate licences.
+• Continue local preparation in the background.
+
 1.5.0
 • Search all unlocked databases together.
 • Keep document and database names in citations.

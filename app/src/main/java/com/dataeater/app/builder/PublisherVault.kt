@@ -29,7 +29,11 @@ class PublisherVault(context: Context) {
         val id = UUID.randomUUID().toString(); val value = JSONObject().put("name", name).put("kind", kind).put("record", record).toString().toByteArray()
         val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
         val encrypted = cipher.doFinal(value)
-        File(folder, "$id.vault").writeBytes(cipher.iv + encrypted)
+        val temporary = File(folder, "$id.tmp")
+        try {
+            java.io.FileOutputStream(temporary).use { it.write(cipher.iv + encrypted); it.fd.sync() }
+            java.nio.file.Files.move(temporary.toPath(), File(folder, "$id.vault").toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE)
+        } finally { temporary.delete() }
         return Item(id, name, kind)
     }
     @Synchronized fun read(item: Item): JSONObject {
@@ -42,5 +46,10 @@ class PublisherVault(context: Context) {
         val item = Item(file.nameWithoutExtension, "", "")
         val json = read(item); Item(item.id, json.getString("name"), json.getString("kind"))
     }.sortedBy { it.name }
+    @Synchronized fun remove(item: Item) {
+        require(Regex("[a-f0-9-]{36}").matches(item.id))
+        val file = File(folder, "${item.id}.vault")
+        require(!file.exists() || file.delete()) { "The saved key could not be removed." }
+    }
     fun record(item: Item): JSONObject = read(item).getJSONObject("record")
 }

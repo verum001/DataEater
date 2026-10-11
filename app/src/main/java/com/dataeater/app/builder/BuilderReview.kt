@@ -18,6 +18,13 @@ object BuilderReview {
         require(pages.map { it.number } == pages.map { it.number }.distinct().sorted()) { "Page markers are duplicated or out of order." }
         return pages
     }
+    fun fingerprint(file: File): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input -> val bytes = ByteArray(65536)
+            while (true) { BuilderCore.checkpoint(); val n = input.read(bytes); if (n < 0) break; digest.update(bytes, 0, n) }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
+    }
     fun render(pages: List<BuilderCore.Page>): String = pages.joinToString("") { "=== PAGE ${it.number} ===\n${it.text}\n\n" }
     fun safe(folder: File, name: String): File {
         require(name.isNotBlank() && name != "." && name != ".." && File(name).name == name && !name.contains('\\')) { "Invalid review filename." }
@@ -65,12 +72,19 @@ object BuilderReview {
         require(manifest.optString("format") == "dataeater-review" && manifest.optInt("version") == 1) { "Unsupported review package." }
         val sources = manifest.getJSONArray("documents")
         require(sources.length() in 1..1000) { "Invalid review document count." }
+        val originalNames = mutableSetOf<String>()
         val ids = mutableSetOf<String>(); val files = mutableSetOf<String>(); val documents = mutableListOf<BuilderCore.Document>()
         var changes = 0; var bytes = 0L
         val numbers = Regex("\\d+(?:[.,]\\d+)*")
         for (index in 0 until sources.length()) {
             BuilderCore.checkpoint(); val source = sources.getJSONObject(index); val sid = source.getString("id")
             require(ids.add(sid)) { "Duplicate review document ID." }
+            if (source.has("original_file")) {
+                val originalName = source.getString("original_file")
+                require(originalNames.add(originalName)) { "Duplicate original source file." }
+                val original = safe(File(folder, "sources"), originalName)
+                require(original.isFile && fingerprint(original) == source.getString("source_sha256")) { "An original source file was changed or is missing." }
+            }
             val parts = source.getJSONArray("parts"); val pages = mutableListOf<BuilderCore.Page>()
             require(parts.length() in 1..10000) { "Invalid review batch count." }
             for (partIndex in 0 until parts.length()) {
@@ -109,17 +123,19 @@ object BuilderReview {
             documents.add(BuilderCore.Document(source.getString("title"), source.optString("filename"), source.optString("source_sha256"),
                 total, source.optInt("omitted_minimal_text_pages"), contextual, id = sid))
         }
+        require(File(folder, "sources").listFiles().orEmpty().all { it.isFile && it.name in originalNames }) { "Unexpected original source file in review." }
         return Imported(documents, changes)
     }
     fun zip(folder: File, output: File) {
         read(folder) // Never export a misleading review package that fails validation.
+        var packageBytes = 0L
         ZipOutputStream(output.outputStream().buffered()).use { zip ->
             for (file in folder.walkTopDown().filter { it.isFile }.sortedBy { it.relativeTo(folder).path }) {
                 BuilderCore.checkpoint(); val name = file.relativeTo(folder).invariantSeparatorsPath
                 require(file.canonicalPath.startsWith(folder.canonicalPath + File.separator)) { "Invalid review path." }
                 zip.putNextEntry(ZipEntry(name)); file.inputStream().use { input ->
                     val buffer = ByteArray(65536); var total = 0L
-                    while (true) { BuilderCore.checkpoint(); val count = input.read(buffer); if (count < 0) break; total += count; require(total <= 32L * 1024 * 1024); zip.write(buffer, 0, count) }
+                    while (true) { BuilderCore.checkpoint(); val count = input.read(buffer); if (count < 0) break; total += count; packageBytes += count; require(total <= 256L * 1024 * 1024 && packageBytes <= 512L * 1024 * 1024); zip.write(buffer, 0, count) }
                 }; zip.closeEntry()
             }
         }
@@ -142,12 +158,12 @@ object BuilderReview {
                 require(target.canonicalPath.startsWith(folder.canonicalPath + File.separator)) { "Invalid review archive path." }
                 if (entry.isDirectory) target.mkdirs() else {
                     require(name == "review.json" || name == "LLM_PROMPT.txt" || name == "README.md" ||
-                        ((name.startsWith("original/") || name.startsWith("reviewed/") || name.startsWith("notes/")) && name.split('/').size == 2)) { "Unexpected file in review archive." }
+                        ((name.startsWith("original/") || name.startsWith("reviewed/") || name.startsWith("notes/") || name.startsWith("sources/")) && name.split('/').size == 2)) { "Unexpected file in review archive." }
                     target.parentFile?.mkdirs()
                     zip.getInputStream(entry).use { stream -> target.outputStream().use { output ->
                         val buffer = ByteArray(65536); var countForFile = 0L
                         while (true) { BuilderCore.checkpoint(); val count = stream.read(buffer); if (count < 0) break
-                            total += count; countForFile += count; require(total <= BuilderCore.MAX_REVIEW_BYTES && countForFile <= 32L * 1024 * 1024) { "Review archive is too large." }; output.write(buffer, 0, count) }
+                            total += count; countForFile += count; require(total <= 512L * 1024 * 1024 && countForFile <= (if (name.startsWith("sources/")) 256L * 1024 * 1024 else 32L * 1024 * 1024)) { "Review archive is too large." }; output.write(buffer, 0, count) }
                     } }
                 }
             }

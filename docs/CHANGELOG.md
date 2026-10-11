@@ -68,3 +68,17 @@ DataEater 1.0 — initial version
 • Local AI chat and questions about document databases.
 • Select and copy message text.
 • Manage models and databases in Settings.
+
+## 1.6.0 — Database downloads and creation
+
+Adds a live database download catalogue, simplified creation controls, source-inclusive manual optimisation ZIPs, background preparation, per-database private-key management, key backups/restoration and device licence generation. Original format-v1 files remain compatible.
+
+## 0.1.6.0 — Download repair and version naming
+
+Changes the current version name to 0.1.6.0 while keeping Android update ordering. Database downloads continue after storage permission is granted, and catalogue refreshes cannot invalidate a download tap. Removes More tools from database creation.
+
+## 0.1.6.1 — Database catalogue and Help
+
+Database descriptions start collapsed and can be expanded individually. Download databases is inside the expanded Database Selection section. Help now explains downloads, database creation, manual optimisation and private key backups.
+
+The catalogue is loaded directly from the public database repository and retained when refresh fails. This avoids exhausted unauthenticated GitHub API quotas.

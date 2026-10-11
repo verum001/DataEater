@@ -28,7 +28,7 @@ import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun BuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDatabaseReady: (File) -> Unit, onBack: () -> Unit) {
+fun AdvancedBuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDatabaseReady: (File) -> Unit, onBack: () -> Unit) {
     val context = LocalContext.current
     val state = model.state
     var help by rememberSaveable { mutableStateOf(false) }

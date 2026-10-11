@@ -55,13 +55,13 @@ class BuilderFiles(private val context: Context) {
                     val child = cursor.getString(0); val name = cursor.getString(1); val directory = cursor.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR
                     val target = BuilderReview.safe(parent, name)
                     if (directory) {
-                        require(depth == 0 && name in setOf("original", "reviewed", "notes")) { "Choose a review folder containing review.json, original and reviewed." }
+                        require(depth == 0 && name in setOf("original", "reviewed", "notes", "sources")) { "Choose a review folder containing review.json, original and reviewed." }
                         require(!target.exists()); target.mkdir(); visit(child, target, depth + 1)
                     } else {
                         require(depth == 1 || name in setOf("review.json", "LLM_PROMPT.txt", "README.md")) { "Unexpected file in review folder." }
                         require(!target.exists()) { "Duplicate review filename." }
-                        copy(DocumentsContract.buildDocumentUriUsingTree(uri, child), target, 32L * 1024 * 1024)
-                        total += target.length(); require(total <= BuilderCore.MAX_REVIEW_BYTES) { "The review is too large for the phone." }
+                        copy(DocumentsContract.buildDocumentUriUsingTree(uri, child), target, if (parent.name == "sources") 256L * 1024 * 1024 else 32L * 1024 * 1024)
+                        total += target.length(); require(total <= 512L * 1024 * 1024) { "The review is too large for the phone." }
                     }
                 }
             } ?: error("The review folder could not be read.")

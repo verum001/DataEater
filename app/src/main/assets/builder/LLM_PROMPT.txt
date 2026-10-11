@@ -16,3 +16,14 @@ plain text, without Markdown fences, introductory remarks or closing comments.
 Put uncertainties in a separate notes response/file, never in the returned text.
 If the response will be too long, stop and request a smaller batch; do not truncate.
 The user must compare technical corrections against the original PDF before building.
+
+When supplied a complete optimisation ZIP, sources/ contains unchanged original files,
+original/ contains parsed source text, reviewed/ contains the editable returned text,
+and review.json records original fingerprints and exact page markers. Consult the
+original files to verify column order, complete warnings, procedure steps and table
+relationships. Do not treat navigation metadata as factual evidence. Edit only the
+matching reviewed/ files; keep sources/, original/, review.json and this prompt
+unchanged. Put unresolved issues in notes/. Return the complete ZIP with the same
+folder structure for Continue after optimisation. Do not omit unchanged files.
+Diagrams, scale-dependent templates and ambiguous relationships must remain flagged
+for source-page checking; never reconstruct them from memory or benchmark answers.

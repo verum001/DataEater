@@ -34,7 +34,7 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
     data class State(val task: Task = Task.BUILD, val inputs: List<BuilderFiles.Input> = emptyList(), val database: BuilderFiles.Input? = null,
         val fields: Map<String, String> = mapOf("name" to "", "language" to "en", "license" to "unknown", "target" to "700", "batch" to "30000", "expiry" to "never", "creator" to "", "contact" to "", "keyName" to "Creator key"),
         val signingId: String? = null, val secretId: String? = null, val reviewId: String? = null, val keys: List<PublisherVault.Item> = emptyList(),
-        val reviews: List<Review> = emptyList(), val busy: Boolean = false, val status: String = "", val result: Result? = null)
+        val reviews: List<Review> = emptyList(), val vaultReady: Boolean = false, val busy: Boolean = false, val status: String = "", val result: Result? = null)
     data class Export(val file: File? = null, val item: PublisherVault.Item? = null, val reviewId: String? = null, val prompt: Boolean = false)
     var pendingExport: Export? = null
     var pendingKeyKind = "signing"
@@ -49,7 +49,43 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
     private var cancelled = AtomicBoolean(false)
     private val running = AtomicReference<Thread?>(null)
     private var sequence = 0L
-    init { executor.execute { try { val keys = vault.list(); val reviews = reviews(); main.post { state = state.copy(keys = keys, reviews = reviews) } } catch (_: Exception) { main.post { state = state.copy(status = "Saved keys could not be opened. Restore an exported backup if needed.") } } } }
+    init { executor.execute { try { val keys = vault.list(); val reviews = reviews(); main.post { state = state.copy(keys = keys, reviews = reviews, vaultReady = keys.any { it.kind == "signing" }) } } catch (_: Exception) { main.post { state = state.copy(status = "Saved keys could not be opened. Restore an exported backup if needed.") } } } }
+    fun clearResult() { if (!state.busy) state = state.copy(result = null, status = "") }
+    fun prepareVaultBackup(item: PublisherVault.Item, ready: (File) -> Unit) = submit("Preparing private key backup…") { _, output ->
+        val secret = vault.record(item)
+        val signing = vaultSigning(secret, vaultDatabase(secret))
+        val file = File(output, "${BuilderCore.id(item.name)}-keys.json")
+        file.writeText(JSONObject().put("format", "dataeater-vault-backup").put("version", 1)
+            .put("name", item.name).put("content", secret).put("signing", vault.record(signing)).toString(2) + "\n")
+        main.post { ready(file) }
+        Result("Private backup prepared. Save it in secure storage.", file)
+    }
+    fun restoreVaultBackup(uri: Uri) = submit("Restoring secret key vault…") { _, output ->
+        val bundle = files.record(uri)
+        require(bundle.optString("format") == "dataeater-vault-backup" && bundle.optInt("version") == 1) { "Choose a DataEater vault backup." }
+        val secret = bundle.getJSONObject("content")
+        val signingRecord = bundle.getJSONObject("signing")
+        BuilderCrypto.secretKey(secret); BuilderCrypto.validateKey(signingRecord)
+        val oldPath = secret.optString("database_path")
+        val oldFile = File(oldPath)
+        val name = secret.getString("database")
+        require(File(name).name == name && name.endsWith(".dataeater")) { "Invalid database name in backup." }
+        val existing = if (oldPath.isNotBlank() && oldFile.canonicalPath.startsWith(folder.canonicalPath + File.separator) && oldFile.isFile) oldFile else File(DatabaseFiles.folder(), name)
+        require(existing.isFile) { "Copy the matching private database into the DataEater folder before restoring its keys." }
+        val database = File(output, name); existing.copyTo(database)
+        val entries = BuilderCore.entries(database)
+        val header = JSONObject(entries.getValue("manifest.json").toString(Charsets.UTF_8))
+        require(header.getString("creator_public_key") == signingRecord.getString("public_key")) { "Backup does not match the database signing key." }
+        val payload = com.dataeater.app.security.DeviceKeys.gcmDecrypt(BuilderCrypto.secretKey(secret), android.util.Base64.decode(header.getString("payload_nonce"), android.util.Base64.DEFAULT), entries.getValue("payload.enc"))
+        require(JSONObject(payload.toString(Charsets.UTF_8)).optString("format") == "dataeater-payload") { "Backup does not match this database." }
+        val signing = vault.save("Restored publisher", "signing", signingRecord)
+        try {
+            secret.put("signing_id", signing.id).put("database_path", database.absolutePath)
+            val item = vault.save(name, "content", secret)
+            main.post { state = state.copy(vaultReady = true) }
+            Result("Secret key vault backup restored.", signing = signing, secret = item)
+        } catch (error: Throwable) { vault.remove(signing); throw error }
+    }
     fun field(key: String, value: String) { if (!state.busy) state = state.copy(fields = state.fields + (key to value)) }
     fun task(task: Task) { if (!state.busy) state = state.copy(task = task, result = null, status = "") }
     fun signing(id: String?) { if (!state.busy) state = state.copy(signingId = id) }
@@ -71,13 +107,18 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
         val record = files.record(uri); check(); val item = vault.save(files.input(uri).name, kind, record)
         main.post { state = if (kind == "signing") state.copy(signingId = item.id) else state.copy(secretId = item.id) }; null
     }
-    fun importReview(uri: Uri) = submit("Importing review…") { temp, output ->
-        val archive = File(temp, "review.zip"); files.copy(uri, archive, 64L * 1024 * 1024)
+    fun importReview(uri: Uri) = importReviewCleared(uri)
+    private fun importReviewCleared(uri: Uri) {
+        if (state.busy) return
+        state = state.copy(reviewId = null, result = null)
+        submit("Importing review…") { temp, output ->
+        val archive = File(temp, "review.zip"); files.copy(uri, archive, 512L * 1024 * 1024)
         val reviewFolder = File(output, "review"); BuilderReview.unzip(archive, reviewFolder)
         val imported = BuilderReview.read(reviewFolder); val title = imported.documents.first().title
         File(output, "review-name.txt").writeText(title); val review = Review(output.name, title)
         main.post { state = state.copy(reviewId = review.id) }
         Result("Review imported. Originals and page markers verified.", review = review)
+    }
     }
     fun importReviewFolder(uri: Uri) = submit("Importing review folder…") { _, output ->
         val reviewFolder = File(output, "review"); files.copyReviewFolder(uri, reviewFolder)
@@ -159,6 +200,137 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
+    fun setupVault() = submit("Creating secret key vault…") { _, _ ->
+        val existing = vault.list().firstOrNull { it.kind == "signing" }
+        val signing = existing ?: vault.save("Database publisher", "signing", BuilderCrypto.createKey())
+        main.post { state = state.copy(vaultReady = true, signingId = signing.id) }
+        Result("Secret key vault is ready. Save a secure backup before sharing a private database.")
+    }
+    fun removeKey(item: PublisherVault.Item) = submit("Removing saved key…") { _, _ ->
+        vault.remove(item)
+        Result("Saved key removed. Existing database files were preserved.")
+    }
+    fun createSimple(encrypted: Boolean, optimise: Boolean, reviewed: Boolean = false) {
+        val snapshot = state
+        if (!state.busy) state = state.copy(result = null)
+        submit(if (optimise && !reviewed) "Preparing optimisation ZIP…" else "Creating database…") { temp, output ->
+            require(options(snapshot).name.isNotBlank()) { "Enter a database name." }
+            val directory = DatabaseFiles.folder()
+            require((directory.isDirectory || directory.mkdirs()) && directory.canWrite()) { "Grant DataEater folder access in Settings first." }
+            val docs = if (reviewed) {
+                BuilderReview.read(reviewFolder(snapshot.reviewId ?: error("Choose the returned optimisation ZIP first."))).documents
+            } else {
+                require(snapshot.inputs.isNotEmpty()) { "Choose files first." }
+                var bytes = 0L
+                snapshot.inputs.mapIndexed { index, input ->
+                    check(); progress("Reading file ${index + 1} of ${snapshot.inputs.size}")
+                    files.extract(input, temp).also {
+                        bytes += it.pages.sumOf { p -> p.text.toByteArray().size.toLong() }
+                        require(bytes <= BuilderCore.MAX_TEXT_BYTES) { "Choose a smaller collection of files." }
+                    }
+                }
+            }
+            if (optimise && !reviewed) {
+                val review = File(output, "review")
+                val prompt = context.assets.open("builder/LLM_PROMPT.txt").bufferedReader().use { it.readText() }
+                BuilderReview.export(docs, review, 30000, prompt)
+                val manifest = JSONObject(File(review, "review.json").readText())
+                val originals = File(review, "sources").apply { mkdirs() }
+                var sourceBytes = 0L
+                for ((index, input) in snapshot.inputs.withIndex()) {
+                    val name = "source-${index + 1}." + input.name.substringAfterLast('.').lowercase()
+                    val source = File(originals, name)
+                    files.copy(input.uri, source)
+                    sourceBytes += source.length(); require(sourceBytes <= 480L * 1024 * 1024) { "Choose a smaller collection for optimisation." }
+                    require(BuilderReview.fingerprint(source) == docs[index].fingerprint) { "An input changed during preparation. Choose it again." }
+                    manifest.getJSONArray("documents").getJSONObject(index).put("original_file", name)
+                }
+                File(review, "review.json").writeText(manifest.toString(2) + "\n")
+                val title = options(snapshot).name
+                File(output, "review-name.txt").writeText(title)
+                val zip = File(output, BuilderCore.id(title) + "-optimisation.zip")
+                BuilderReview.zip(review, zip)
+                val saved = saveVisible(zip, directory)
+                main.post { state = state.copy(reviewId = output.name) }
+                Result("Optimisation ZIP saved: ${saved.name}. It contains unencrypted originals, parsed text and the prompt. Send it to your chosen LLM, check its changes, then import the returned ZIP and continue.", saved, Review(output.name, title))
+            } else {
+                val options = options(snapshot)
+                val plain = File(temp, "plain.dataeater")
+                val report = BuilderCore.writeDatabase(docs, options, plain)
+                val name = BuilderCore.id(options.name) + (if (encrypted) "-priv" else "") + ".dataeater"
+                val target = unusedVisible(directory, name)
+                val artifact = File(output, target.name)
+                var secretItem: PublisherVault.Item? = null
+                var signingItem: PublisherVault.Item? = null
+                if (encrypted) {
+                    signingItem = vault.list().firstOrNull { it.id == snapshot.signingId && it.kind == "signing" }
+                        ?: vault.list().firstOrNull { it.kind == "signing" } ?: error("Set up the secret key vault first.")
+                    val secret = BuilderCrypto.encrypt(plain, artifact, snapshot.fields["creator"].orEmpty(), snapshot.fields["contact"].orEmpty(), vault.record(signingItem).getString("public_key"))
+                    secret.put("signing_id", signingItem.id).put("database_path", artifact.absolutePath)
+                    // Preserve keys before publishing any encrypted database.
+                    secretItem = vault.save(target.name, "content", secret)
+                } else plain.copyTo(artifact)
+                check()
+                try {
+                    saveVisible(artifact, directory, target)
+                } catch (error: Throwable) {
+                    secretItem?.let(vault::remove)
+                    throw error
+                }
+                Result("Saved ${target.name} in /sdcard/DataEater.\n$report" + if (encrypted) "\nPrivate database key stored in the secret key vault." else "", target, signing = signingItem, secret = secretItem)
+            }
+        }
+    }
+    private fun unusedVisible(directory: File, name: String): File {
+        var target = File(directory, name); var number = 2
+        while (target.exists()) target = File(directory, name.substringBeforeLast('.') + "-${number++}." + name.substringAfterLast('.'))
+        return target
+    }
+    private fun saveVisible(file: File, directory: File, target: File = unusedVisible(directory, file.name)): File {
+        val stage = File.createTempFile(".builder-", ".tmp", directory)
+        try {
+            file.inputStream().use { input -> java.io.FileOutputStream(stage).use { output ->
+                val buffer = ByteArray(65536)
+                while (true) { check(); val count = input.read(buffer); if (count < 0) break; output.write(buffer, 0, count) }
+                output.fd.sync()
+            } }
+            check(); require(!target.exists()) { "The destination already exists. Retry to create a new copy." }
+            Files.move(stage.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE)
+            return target
+        } finally { stage.delete() }
+    }
+    private fun vaultDatabase(secret: JSONObject): File {
+        val path = secret.optString("database_path")
+        if (path.isNotBlank()) {
+            val stored = File(path)
+            if (stored.isFile && stored.canonicalPath.startsWith(folder.canonicalPath + File.separator)) return stored
+        }
+        val name = secret.getString("database")
+        require(File(name).name == name && name.endsWith(".dataeater")) { "Invalid stored database name." }
+        val candidates = folder.listFiles().orEmpty().filter(File::isDirectory).map { File(it, name) } + File(DatabaseFiles.folder(), name)
+        return candidates.firstOrNull { candidate ->
+            candidate.isFile && runCatching {
+                val entries = BuilderCore.entries(candidate)
+                val manifest = JSONObject(entries.getValue("manifest.json").toString(Charsets.UTF_8))
+                com.dataeater.app.security.DeviceKeys.gcmDecrypt(BuilderCrypto.secretKey(secret),
+                    android.util.Base64.decode(manifest.getString("payload_nonce"), android.util.Base64.DEFAULT), entries.getValue("payload.enc"))
+            }.isSuccess
+        } ?: error("Copy the matching private database into the DataEater folder first.")
+    }
+    private fun vaultSigning(secret: JSONObject, database: File): PublisherVault.Item {
+        val manifest = JSONObject(BuilderCore.entries(database).getValue("manifest.json").toString(Charsets.UTF_8))
+        val public = manifest.getString("creator_public_key")
+        return vault.list().firstOrNull { it.kind == "signing" && vault.record(it).optString("public_key") == public }
+            ?: error("The signing key is missing. Restore its key backup first.")
+    }
+    fun licenceFor(item: PublisherVault.Item, request: String, expiry: String) = submit("Creating licence key…") { _, output ->
+        val secret = vault.record(item)
+        val database = vaultDatabase(secret)
+        val signing = vaultSigning(secret, database)
+        val code = BuilderCrypto.licence(database, secret, vault.record(signing), request, expiry)
+        val file = File(output, "${BuilderCore.id(item.name)}-access.lic").apply { writeText(code) }
+        Result("Licence key created for the matching phone. Save it and send it to that phone's user.", file)
+    }
     private fun progress(message: String) { main.post { if (state.busy) state = state.copy(status = message) } }
     private fun check() { if (cancelled.get()) throw InterruptedException("Cancelled"); BuilderCore.checkpoint() }
     private fun reviews(): List<Review> = folder.listFiles().orEmpty().filter { File(it, "review/review.json").isFile }.map {
@@ -233,6 +405,14 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
     private fun submit(label: String, block: (File, File) -> Result?) {
         if (state.busy) return
         sequence++; val own = sequence; val token = AtomicBoolean(false); cancelled = token
+        try {
+            BuilderService.cancelOperation = ::cancel
+            context.startForegroundService(android.content.Intent(context, BuilderService::class.java))
+        } catch (_: Exception) {
+            BuilderService.cancelOperation = null
+            state = state.copy(status = "Keep the app open and try again to start background preparation.")
+            return
+        }
         state = state.copy(busy = true, status = label)
         executor.execute {
             Thread.interrupted(); running.set(Thread.currentThread())
@@ -248,6 +428,8 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
             } finally {
                 temp.deleteRecursively(); if (!success || output.listFiles().isNullOrEmpty()) output.deleteRecursively()
                 running.set(null); Thread.interrupted()
+                context.stopService(android.content.Intent(context, BuilderService::class.java))
+                BuilderService.cancelOperation = null
                 val keys = try { vault.list() } catch (_: Exception) { emptyList() }; val reviews = try { reviews() } catch (_: Exception) { emptyList() }
                 main.post { if (sequence == own) state = state.copy(busy = false, status = message, result = result.takeIf { success } ?: state.result, keys = keys, reviews = reviews) }
             }
@@ -255,5 +437,11 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
     }
     fun cancel() { cancelled.set(true); running.get()?.interrupt(); if (state.busy) state = state.copy(status = "Cancelling…") }
     fun clearForm() { if (!state.busy) state = State(keys = state.keys, reviews = state.reviews) }
+    companion object {
+        @Volatile private var instance: BuilderViewModel? = null
+        fun get(application: Application): BuilderViewModel = instance ?: synchronized(this) {
+            instance ?: BuilderViewModel(application).also { instance = it }
+        }
+    }
     override fun onCleared() { cancel(); executor.shutdown(); super.onCleared() }
 }

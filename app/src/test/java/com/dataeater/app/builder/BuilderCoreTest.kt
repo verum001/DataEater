@@ -57,6 +57,21 @@ class BuilderCoreTest {
         val copy = File(root, "copy"); BuilderReview.unzip(zip, copy)
         assertEquals(read.documents, BuilderReview.read(copy).documents)
     }
+    @Test fun optimisationZipContainsExactSourcesAndRefusesSourceTampering() = workspace { root ->
+        val source = File(root, "source.txt").apply { writeText("Original warning: preserve 12.5 volts and every negation.") }
+        val folder = File(root, "review")
+        BuilderReview.export(listOf(document().copy(fingerprint = BuilderReview.fingerprint(source))), folder, 1000, "prompt")
+        val originals = File(folder, "sources").apply { mkdirs() }
+        val original = File(originals, "source-1.txt"); source.copyTo(original)
+        val manifestFile = File(folder, "review.json"); val manifest = JSONObject(manifestFile.readText())
+        manifest.getJSONArray("documents").getJSONObject(0).put("original_file", original.name)
+        manifestFile.writeText(manifest.toString())
+        val zip = File(root, "optimisation.zip"); BuilderReview.zip(folder, zip)
+        val imported = File(root, "returned"); BuilderReview.unzip(zip, imported)
+        assertArrayEquals(source.readBytes(), File(imported, "sources/source-1.txt").readBytes())
+        File(imported, "sources/source-1.txt").appendText("changed")
+        refused { BuilderReview.read(imported) }
+    }
     @Test fun modifiedOriginalAndMissingReorderedOrEmptyPagesAreRefused() = workspace { root ->
         val folder = File(root, "review"); BuilderReview.export(listOf(document()), folder, 1000, "prompt")
         val original = File(folder, "original").listFiles()!!.first(); val reviewed = File(folder, "reviewed/${original.name}"); val saved = reviewed.readText()

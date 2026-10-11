@@ -15,7 +15,7 @@ import java.util.zip.ZipOutputStream
 
 /** Portable builder operations. Android file picking and PDF extraction live separately. */
 object BuilderCore {
-    const val VERSION = "android-1.4.0"
+    const val VERSION = "android-0.1.6.1"
     const val MAX_TEXT_BYTES = 12 * 1024 * 1024
     const val MAX_REVIEW_BYTES = 64L * 1024 * 1024
     data class Page(val number: Int, val text: String, val paths: Map<String, String> = emptyMap(), val context: String = "")

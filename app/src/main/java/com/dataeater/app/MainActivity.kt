@@ -95,6 +95,9 @@ import com.dataeater.app.chat.ChatResponder
 import com.dataeater.app.chat.SessionController
 import com.dataeater.app.chat.SessionStore
 import com.dataeater.app.data.DatabaseDeletion
+import com.dataeater.app.data.DatabaseDownloads
+import com.dataeater.app.data.DatabaseCatalog
+import com.dataeater.app.ui.DatabaseDownloadDialog
 import com.dataeater.app.data.DatabaseCollection
 import com.dataeater.app.data.DatabaseChoice
 import com.dataeater.app.data.DatabaseFiles
@@ -260,6 +263,10 @@ fun DataEaterScreen(
     val coroutineScope = rememberCoroutineScope()
     val downloads = remember { ModelDownloads.get(context) }
     val downloadState by downloads.state.collectAsState()
+    val databaseDownloads = remember { DatabaseDownloads.get(context) }
+    val databaseDownload by databaseDownloads.state.collectAsState()
+    val databaseCatalog by databaseDownloads.catalog.collectAsState()
+    var showDatabaseCatalog by rememberSaveable { mutableStateOf(false) }
 
     // --- conversations -------------------------------------------------
     /**
@@ -1242,6 +1249,14 @@ fun DataEaterScreen(
     }
 
     LaunchedEffect(downloadState.installed) { rescanModels() }
+    LaunchedEffect(databaseDownload.installed) { rescanDatabases() }
+    var pendingDatabaseDownload by remember { mutableStateOf<DatabaseCatalog.Entry?>(null) }
+    val databaseWritePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val entry = pendingDatabaseDownload
+        pendingDatabaseDownload = null
+        if (granted && entry != null) databaseDownloads.start(entry)
+        else aiStatus = "Database download needs storage write permission."
+    }
     var pendingModelDownload by remember { mutableStateOf<ModelCatalog.Entry?>(null) }
     val downloadWritePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         val entry = pendingModelDownload
@@ -1256,6 +1271,18 @@ fun DataEaterScreen(
     val storageSettings = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { refreshStorageAccess() }
+    LaunchedEffect(hasStorageAccess, pendingDatabaseDownload) {
+        val entry = pendingDatabaseDownload
+        if (hasStorageAccess && entry != null) {
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                databaseWritePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            } else {
+                pendingDatabaseDownload = null
+                databaseDownloads.start(entry)
+            }
+        }
+    }
     val refreshStorageOnResume by rememberUpdatedState({ refreshStorageAccess() })
     DisposableEffect(context) {
         val lifecycle = (context as? ComponentActivity)?.lifecycle
@@ -1519,7 +1546,7 @@ fun DataEaterScreen(
 
     when {
         showBuilder -> BuilderScreen(
-            model = viewModel<BuilderViewModel>(),
+            model = remember { BuilderViewModel.get(context.applicationContext as android.app.Application) },
             canUseDatabase = hasStorageAccess && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ||
                 ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED),
             onDatabaseReady = { file ->
@@ -1639,6 +1666,7 @@ fun DataEaterScreen(
                 onUseLocal = { useLocalAi() },
                 onRemoveOpenRouterKey = { removeOpenRouterKey() },
                 onCreateDatabase = { showBuilder = true },
+                onDownloadDatabases = { showDatabaseCatalog = true; databaseDownloads.refresh() },
             ),
             onBack = { showSettings = false },
         )
@@ -1807,6 +1835,14 @@ fun DataEaterScreen(
 
         }
     }
+    if (showDatabaseCatalog) DatabaseDownloadDialog(databaseCatalog, databaseDownload, availableDatabases,
+        hasStorageAccess, databaseDownloads::refresh, { entry ->
+            pendingDatabaseDownload = entry
+            if (!hasStorageAccess) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) storageSettings.launch(ModelFiles.accessSettingsIntent(context))
+                else readStoragePermission.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+        }, databaseDownloads::cancel, { showDatabaseCatalog = false })
     if (showModelCatalog) ModelDownloadDialog(downloadUi, onDismiss = { showModelCatalog = false })
 }
 
