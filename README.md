@@ -4,8 +4,7 @@
 
 **Ask your documents. Get answers on your phone.**
 
-DataEater is an open-source Android app for local AI chat and questions about
-PDF, text and Markdown knowledge databases. Answers can include document,
+DataEater is an open-source Android app for local AI chat and asking AI specific questions using knowledge databases. Answers can include document,
 section and page references. Local inference and document processing run on the
 phone. Optional OpenRouter chat sends messages to its service; sharing retrieved
 document excerpts requires a separate opt-in.
@@ -94,7 +93,7 @@ have not been replaced. [Provenance](PROVENANCE.md) distinguishes them from sour
 
 ## License
 
-Copyright 2026 Jack. Original code, documentation and artwork are licensed under
+Copyright 2026 Jack Littlejack. Original code, documentation and artwork are licensed under
 [Apache License 2.0](LICENSE), with attribution in [NOTICE](NOTICE). You can inspect,
 modify and redistribute the source under that license. Third-party code keeps
 its own terms; see [third-party notices](THIRD_PARTY_NOTICES.md). Model weights and
