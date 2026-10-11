@@ -6,13 +6,18 @@ import android.content.SharedPreferences
 /** Remembers an existing external database; an unavailable choice means none selected. */
 object DatabaseChoice {
 
+    const val ALL = "All unlocked databases"
+
+    fun choices(available: Collection<String>): List<String> =
+        if (available.isEmpty()) emptyList() else listOf(ALL) + available.filter { it != ALL }
+
     private const val PREFS_NAME = "dataeater-settings"
     private const val KEY_LAST_DATABASE = "last-database"
 
     /** A missing, legacy built-in, or blank choice never silently opens another file. */
     fun restore(stored: String?, available: Collection<String>): String {
         val wanted = stored?.trim().orEmpty()
-        return if (wanted in available) wanted else ""
+        return if (wanted in choices(available)) wanted else ""
     }
 
     /** Reads the remembered choice, or null on a first run. */

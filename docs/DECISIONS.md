@@ -41,3 +41,7 @@ used on selected document batches; there is no automatic document upload.
 Original source and documentation are public under Apache-2.0. Third-party code,
 model weights and input documents keep their own terms. Production keys, personal
 data and unpublished research artifacts are outside the source distribution.
+
+## D-024 — Search across open databases (11 October 2026)
+
+An explicit All unlocked databases selection forms one in-memory search collection for text search and RAG. Source and passage IDs are namespaced by collection position, preserving original files and preventing citation collisions. Stored unlock codes are verified while opening; excluded locked files are named. Unreadable files fail opening with their filename rather than disappearing silently. Collection payload is capped at 64 MiB of passage/navigation UTF-8 and 100,000 passages; this is an input cap, not a guarantee of peak RAM. Refresh replaces the collection.

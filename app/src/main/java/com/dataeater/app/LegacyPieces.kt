@@ -108,6 +108,9 @@ internal fun DatabasePickerCard(
                     style = MaterialTheme.typography.bodySmall,
                 )
             } else {
+                OutlinedButton(onClick = { onSelect(DatabaseChoice.ALL) }) {
+                    Text(DatabaseChoice.ALL)
+                }
                 for (candidate in available) {
                     val isChosen = candidate.displayName == selected
                     // Read once per row rather than per label, so a file that

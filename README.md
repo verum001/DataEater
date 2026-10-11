@@ -97,4 +97,10 @@ Copyright 2026 Jack Littlejack. Original code, documentation and artwork are lic
 [Apache License 2.0](LICENSE), with attribution in [NOTICE](NOTICE). You can inspect,
 modify and redistribute the source under that license. Third-party code keeps
 its own terms; see [third-party notices](THIRD_PARTY_NOTICES.md). Model weights and
-input documents have separate licenses. 
+input documents have separate licenses.
+
+### Search several databases
+
+Choose **All unlocked databases** in Chat, Search or Settings to search all readable databases together. Locked files are included only when their stored Unlock Code passes verification; excluded files are named on screen. Each citation includes the originating database filename and document. Choose a single database to narrow the scope. The collection is rebuilt when files are refreshed. Large collections are refused with a message to select one database.
+
+Versioned manual collections are available in [DataEater-Databases](https://github.com/verum001/DataEater-Databases); each collection retains its source-specific terms.

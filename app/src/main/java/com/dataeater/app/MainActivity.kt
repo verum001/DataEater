@@ -95,6 +95,7 @@ import com.dataeater.app.chat.ChatResponder
 import com.dataeater.app.chat.SessionController
 import com.dataeater.app.chat.SessionStore
 import com.dataeater.app.data.DatabaseDeletion
+import com.dataeater.app.data.DatabaseCollection
 import com.dataeater.app.data.DatabaseChoice
 import com.dataeater.app.data.DatabaseFiles
 import com.dataeater.app.data.DatabaseLock
@@ -763,6 +764,34 @@ fun DataEaterScreen(
      */
     fun openSelectedDatabase(): OpenResult {
         if (selectedDatabase.isBlank()) return OpenResult.Empty
+        if (selectedDatabase == DatabaseChoice.ALL) {
+            val opened = mutableListOf<DatabaseReader.OpenedDatabase>()
+            val excluded = mutableListOf<String>()
+            var retainedBytes = 0L
+            var retainedPassages = 0L
+            fun addToCollection(value: DatabaseReader.OpenedDatabase) {
+                retainedBytes += value.chunks.sumOf { (it.text.toByteArray(Charsets.UTF_8).size + it.searchContext.toByteArray(Charsets.UTF_8).size).toLong() }
+                retainedPassages += value.chunks.size
+                DatabaseCollection.checkSize(retainedBytes, retainedPassages)
+                opened.add(value)
+            }
+            for (candidate in availableDatabases) {
+                when (val status = DatabaseLock.inspect(candidate.file)) {
+                    is DatabaseLock.Status.Open -> addToCollection(DatabaseReader.openFile(candidate.file))
+                    is DatabaseLock.Status.Locked -> {
+                        val unlocked = tryRememberedLicence(candidate.file, status)
+                        if (unlocked == null) excluded.add(candidate.displayName) else addToCollection(unlocked)
+                    }
+                    is DatabaseLock.Status.Unreadable -> throw DatabaseReader.DataEaterException(
+                        "${candidate.displayName}: ${status.reason}",
+                    )
+                }
+            }
+            if (opened.isEmpty()) throw DatabaseReader.DataEaterException(
+                "No database is unlocked. Choose a database and enter its Unlock Code first.",
+            )
+            return OpenResult.Ready(DatabaseCollection.combine(opened, excluded))
+        }
 
         val chosen = availableDatabases.firstOrNull { it.displayName == selectedDatabase }
             ?: throw IllegalStateException("The database file is no longer there.")
@@ -970,7 +999,7 @@ fun DataEaterScreen(
         }
     }
 
-    fun databaseChoices(): List<String> = availableDatabases.map { it.displayName }
+    fun databaseChoices(): List<String> = DatabaseChoice.choices(availableDatabases.map { it.displayName })
 
     fun databaseIdFor(label: String): String? =
         availableDatabases.firstOrNull { it.displayName == label }?.displayName
@@ -1302,7 +1331,7 @@ fun DataEaterScreen(
 
         // Restore the database if this session was talking about a different one.
         if (restored.databaseName.isNotBlank() && restored.databaseName != selectedDatabase) {
-            val known = availableDatabases.any { it.displayName == restored.databaseName }
+            val known = restored.databaseName in databaseChoices()
             if (known) {
                 selectedDatabase = restored.databaseName
                 DatabaseChoice.remember(context, restored.databaseName)
@@ -1731,6 +1760,7 @@ fun DataEaterScreen(
         ) {
             ChatScreen(
                 session = current,
+                databaseScope = if (selectedDatabase == DatabaseChoice.ALL) openDatabase?.manifest?.description.orEmpty() else "",
                 models = if (engine is OpenRouterAiEngine) emptyList() else models.map { it.displayName },
                 onOpenOnlineModels = if (engine is OpenRouterAiEngine && !isBusy && !isDatabaseBusy) ({ showOnlineModels = true }) else null,
                 loadedModelName = engine?.modelName,

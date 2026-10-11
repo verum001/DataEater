@@ -122,6 +122,11 @@ fun SearchScreen(
                 return@Column
             }
 
+            DatabasePickerCard(
+                available = availableDatabases, selected = selectedDatabase,
+                activeName = database?.manifest?.name, lockStatuses = lockStatuses,
+                onSelect = onSelectDatabase,
+            )
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -178,13 +183,7 @@ fun SearchScreen(
                 }
             }
 
-            DatabasePickerCard(
-                available = availableDatabases,
-                selected = selectedDatabase,
-                activeName = database?.manifest?.name,
-                lockStatuses = lockStatuses,
-                onSelect = onSelectDatabase,
-            )
+
         }
     }
 }
@@ -200,11 +199,12 @@ private fun DatabaseSummary(database: DatabaseReader.OpenedDatabase) {
     DataEaterCard {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = database?.manifest?.name ?: "Unknown",
+                text = database.manifest.name,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(Modifier.height(6.dp))
+            Text(database.manifest.description, style = MaterialTheme.typography.bodySmall)
             SummaryLine("Passages", "${database.chunks.size}")
             SummaryLine("Documents", "${database.sources.size}")
             SummaryLine("Licence", database.manifest.license)

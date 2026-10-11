@@ -547,6 +547,13 @@ private fun DatabaseSelectionCard(
 
             ExpandedArea(visible = isOpen) {
                 if (!state.hasStorageAccess) PermissionNeeded(state)
+                if (state.databases.isNotEmpty()) {
+                    OutlinedButton(
+                        onClick = { state.onChooseDatabase(com.dataeater.app.data.DatabaseChoice.ALL) },
+                        enabled = !state.isBusy,
+                    ) { Text(com.dataeater.app.data.DatabaseChoice.ALL) }
+                    Text("Search every open database together. Locked files need a valid Unlock Code.")
+                }
                 for (database in state.databases) {
                     DatabaseRow(
                         name = database.displayName,

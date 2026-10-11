@@ -142,6 +142,7 @@ fun ChatScreen(
     onToggleDatabase: (Boolean) -> Unit,
     databases: List<String>,
     onChooseDatabase: (String) -> Unit,
+    databaseScope: String = "",
     modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
@@ -184,6 +185,10 @@ fun ChatScreen(
             }
         }
 
+        if (session.useDatabase && databaseScope.isNotBlank()) {
+            Text(databaseScope, modifier = Modifier.padding(horizontal = 16.dp),
+                style = MaterialTheme.typography.labelSmall)
+        }
         // --- the conversation ------------------------------------------
         Conversation(
             needsAi = models.isEmpty() && loadedModelName == null,
