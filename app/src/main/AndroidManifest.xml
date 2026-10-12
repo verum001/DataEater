@@ -43,6 +43,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.DataEater">
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.benchmark-files" android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/benchmark_paths" />
+        </provider>
         <service android:name=".builder.BuilderService" android:exported="false" android:foregroundServiceType="dataSync" />
         <!-- Needed by LiteRT-LM when it runs the model on the GPU.
              required="false" means the app still installs on devices that

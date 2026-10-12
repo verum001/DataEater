@@ -7,8 +7,9 @@ object ModelCatalog {
         val repository: String, val revision: String, val fileName: String,
         val bytes: Long, val sha256: String, val license: String,
         val maxOutputTokens: Int = 512, val thinkingBudget: Int = 0, val cpuOnly: Boolean = false, val inputChars: Int = 6000, val inlineHistory: Boolean = false,
+        val remoteFileName: String = fileName, val updatedAt: String = "", val documentTested: Boolean = false,
     ) {
-        val url: String get() = "https://huggingface.co/$repository/resolve/$revision/$fileName"
+        val url: String get() = "https://huggingface.co/$repository/resolve/$revision/" + remoteFileName.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }
         val sizeLabel: String get() = if (bytes < 1_000_000_000)
             "${bytes / 1_000_000} MB" else java.lang.String.format(java.util.Locale.US, "%.1f GB", bytes / 1e9)
         fun fitsMemory(totalMb: Int): Boolean = bytes / 1_048_576 + 700 <= totalMb * 0.75
@@ -60,8 +61,18 @@ object ModelCatalog {
     // The simple download list only offers bundles measured in document tests.
     // Retain profiles for existing/manual files, including CPU-only Nemotron.
     val entries: List<Entry> get() = listOf("gemma4e2", "qwen17", "qwen15", "qwen4").mapNotNull { id -> profiles.find { it.id == id } }
+    /** Curated exact files from the limited phone document comparison. */
+    val recommended: List<Entry> get() = listOf("gemma4e2", "qwen15", "qwen4").map { id ->
+        profiles.first { it.id == id }.copy(documentTested = true)
+    }
+    fun recommendationFor(entry: Entry): Entry? = recommended.firstOrNull {
+        it.repository == entry.repository && it.remoteFileName == entry.remoteFileName &&
+            it.sha256 == entry.sha256 && it.bytes == entry.bytes
+    }
+    fun isRecommended(entry: Entry): Boolean = recommendationFor(entry) != null
     data class Unavailable(val name: String, val description: String)
     val unavailable: List<Unavailable> = emptyList()
-    fun forFile(fileName: String): Entry? = profiles.find { it.fileName == fileName }
+    private val downloaded = java.util.concurrent.ConcurrentHashMap<String, Entry>()
+    fun registerDownloaded(entry: Entry) { require(HuggingFaceModels.valid(entry)); downloaded[entry.fileName] = entry }
+    fun forFile(fileName: String): Entry? = profiles.find { it.fileName == fileName } ?: downloaded[fileName]
 }
-

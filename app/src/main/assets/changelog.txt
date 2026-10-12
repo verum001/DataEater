@@ -1,3 +1,21 @@
+0.1.7.2 — 12 October 2026
+• Start benchmark compares installed models using your questions and selected databases.
+• Watch automatic questions and answers in chat, with optional stars and feedback.
+• Saved reports include phone details, load and answer times, sources and a comparison table.
+• Select results to delete, copy to Downloads or share with Android.
+
+0.1.7.1 — 12 October 2026
+• Download models is inside the expanded Model Selection area.
+• Recommended/All switches between reviewed versions and live model discovery.
+• Show description expands publisher details fetched from Hugging Face.
+• Reply preference selections use the same accent colours as the other controls.
+
+0.1.7.0
+• Settings moved to the top right; database selection moved to the left below the message box, with a DB: switch on the right.
+• Search in several databases now opens checkboxes and remembers the selected manuals for each chat.
+• Download models is at the top of Settings, with live Hugging Face search, refresh, update dates and an estimated memory filter.
+• Downloads pin the current file revision and checksum; new file versions are saved separately.
+
 0.1.6.1
 • Database downloads no longer depend on GitHub API quotas.
 • Expand database descriptions when needed.

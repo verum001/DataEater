@@ -37,4 +37,16 @@ class DatabaseCollectionTest {
         val small = database("Army", "Water")
         DatabaseCollection.combine(listOf(small.copy(chunks = List(100_001) { small.chunks.single() })))
     }
+    @Test fun differentSelectedManualsHaveSeparateChatMemoryScopes() {
+        val first = database("Army", "Water")
+        val second = database("AirForce", "Shelter")
+        val third = database("Other", "Food")
+        val selected = DatabaseCollection.combine(listOf(first, second))
+        val changed = DatabaseCollection.combine(listOf(first, third))
+        assertNotEquals(selected.manifest.databaseId, changed.manifest.databaseId)
+        assertEquals(selected.manifest.databaseId, DatabaseCollection.combine(listOf(first, second)).manifest.databaseId)
+        assertFalse(selected.chunks.any { it.text == "Food" })
+        assertEquals(DatabaseChoice.ALL, DatabaseChoice.restore("All unlocked databases", listOf("Army")))
+    }
+
 }

@@ -51,6 +51,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
@@ -143,6 +144,8 @@ fun ChatScreen(
     databases: List<String>,
     onChooseDatabase: (String) -> Unit,
     databaseScope: String = "",
+    benchmarkControls: (@Composable () -> Unit)? = null,
+    answerFooter: @Composable (ChatMessage) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
@@ -165,7 +168,7 @@ fun ChatScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onOpenDrawer) {
-                Icon(Icons.Filled.Menu, contentDescription = "Sessions")
+                Icon(if (benchmarkControls == null) Icons.Filled.Menu else Icons.AutoMirrored.Filled.ArrowBack, contentDescription = if (benchmarkControls == null) "Sessions" else "Back")
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -183,6 +186,9 @@ fun ChatScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            if (benchmarkControls == null) IconButton(onClick = onOpenSettings) {
+                Icon(Icons.Filled.Settings, contentDescription = "Settings")
+            }
         }
 
         if (session.useDatabase && databaseScope.isNotBlank()) {
@@ -195,6 +201,7 @@ fun ChatScreen(
             download = download,
             onDownloadAi = onDownloadAi,
             messages = session.messages,
+            answerFooter = answerFooter,
             isGenerating = isGenerating,
             useDatabase = session.useDatabase,
             databaseName = session.databaseName,
@@ -206,6 +213,7 @@ fun ChatScreen(
         )
 
         // --- the composer ----------------------------------------------
+        if (benchmarkControls != null) benchmarkControls() else {
         Composer(
             draft = draft,
             isGenerating = isGenerating,
@@ -225,10 +233,10 @@ fun ChatScreen(
             onChooseModel = onChooseModel,
             onOpenOnlineModels = onOpenOnlineModels,
             onChooseDatabase = onChooseDatabase,
-            onOpenSettings = onOpenSettings,
             onToggleDatabase = onToggleDatabase,
             modifier = Modifier.padding(horizontal = 12.dp),
         )
+        }
     }
 }
 
@@ -248,6 +256,7 @@ private fun Conversation(
     useDatabase: Boolean,
     databaseName: String,
     onSelectionFocusChange: (String, Boolean) -> Unit,
+    answerFooter: @Composable (ChatMessage) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -286,6 +295,7 @@ private fun Conversation(
             MessageBubble(
                 message = messages[index],
                 onSelectionFocusChange = onSelectionFocusChange,
+                answerFooter = answerFooter,
             )
         }
 
@@ -354,6 +364,7 @@ private fun WelcomeNote(useDatabase: Boolean, databaseName: String) {
 private fun MessageBubble(
     message: ChatMessage,
     onSelectionFocusChange: (String, Boolean) -> Unit,
+    answerFooter: @Composable (ChatMessage) -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -392,6 +403,7 @@ private fun MessageBubble(
                         Text(text = message.text, style = MaterialTheme.typography.bodyLarge)
                     }
                     AnswerProvenance(message)
+                    answerFooter(message)
                 }
             }
         }
@@ -625,13 +637,7 @@ private fun SendButton(enabled: Boolean, onClick: () -> Unit) {
     }
 }
 
-/**
- * The control row under the composer: model, settings gear, database toggle.
- *
- * Three controls sharing the width evenly, so the gear lands in the middle as
- * the mockups show. None of them steals height from the input above, which is
- * the part actually being used.
- */
+/** Database selection on the left, model in the middle, labelled database switch on the right. */
 @Composable
 private fun ControlRow(
     models: List<String>,
@@ -642,28 +648,25 @@ private fun ControlRow(
     onChooseModel: (String) -> Unit,
     onOpenOnlineModels: (() -> Unit)? = null,
     onChooseDatabase: (String) -> Unit,
-    onOpenSettings: () -> Unit,
     onToggleDatabase: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BoxWithConstraints(modifier = modifier.fillMaxWidth().padding(top = 2.dp, bottom = 8.dp)) {
-        val needsTwoRows = maxWidth < 320.dp ||
-            (maxWidth < 400.dp &&
-                MaterialTheme.typography.labelLarge.fontSize.value * LocalDensity.current.fontScale > 22f)
+    BoxWithConstraints(modifier.fillMaxWidth().padding(top = 2.dp, bottom = 8.dp)) {
+        val wrap = maxWidth < 320.dp || LocalDensity.current.fontScale > 1.5f
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                DatabasePicker(databases, databaseName, useDatabase, onChooseDatabase, onToggleDatabase, Modifier.weight(1f), showToggle = false)
                 ModelPicker(models, selectedModel, onChooseModel, Modifier.weight(1f), onOpenOnlineModels)
-                IconButton(onClick = onOpenSettings) {
-                    Icon(Icons.Filled.Settings, contentDescription = "Settings")
-                }
-                if (!needsTwoRows) {
-                    DatabasePicker(databases, databaseName, useDatabase,
-                        onChooseDatabase, onToggleDatabase, Modifier.weight(1f))
+                if (!wrap) {
+                    Text("DB: ", style = MaterialTheme.typography.labelLarge)
+                    Switch(checked = useDatabase, onCheckedChange = onToggleDatabase,
+                        modifier = Modifier.semantics { contentDescription = "Use database" })
                 }
             }
-            if (needsTwoRows) {
-                DatabasePicker(databases, databaseName, useDatabase,
-                    onChooseDatabase, onToggleDatabase, Modifier.fillMaxWidth())
+            if (wrap) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                Text("DB: ", style = MaterialTheme.typography.labelLarge)
+                Switch(checked = useDatabase, onCheckedChange = onToggleDatabase,
+                    modifier = Modifier.semantics { contentDescription = "Use database" })
             }
         }
     }
@@ -788,6 +791,7 @@ private fun DatabasePicker(
     onChoose: (String) -> Unit,
     onToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    showToggle: Boolean = true,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val colour = if (useDatabase) {
@@ -796,7 +800,7 @@ private fun DatabasePicker(
         MaterialTheme.colorScheme.tertiary
     }
 
-    Row(modifier = modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         Box(modifier = Modifier.weight(1f)) {
             Surface(
                 onClick = { expanded = true },
@@ -813,7 +817,7 @@ private fun DatabasePicker(
                         .height(40.dp)
                         .padding(horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.End,
+                    horizontalArrangement = Arrangement.Start,
                 ) {
                     Text(
                         text = selectedDatabase.ifBlank {
@@ -877,11 +881,11 @@ private fun DatabasePicker(
             }
         }
 
-        Switch(
-            checked = useDatabase,
-            onCheckedChange = onToggle,
-            modifier = Modifier.padding(start = 2.dp).semantics { contentDescription = "Use database" },
-        )
+        if (showToggle) {
+            Text("DB: ", style = MaterialTheme.typography.labelLarge, color = colour)
+            Switch(checked = useDatabase, onCheckedChange = onToggle,
+                modifier = Modifier.semantics { contentDescription = "Use database" })
+        }
     }
 }
 

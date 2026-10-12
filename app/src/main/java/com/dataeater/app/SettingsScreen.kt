@@ -184,6 +184,7 @@ data class SettingsState(
     val onUseLocal: () -> Unit = {},
     val onRemoveOpenRouterKey: () -> Unit = {},
     val onCreateDatabase: () -> Unit = {},
+    val onBenchmark: () -> Unit = {},
     val onDownloadDatabases: () -> Unit = {},
 )
 
@@ -223,14 +224,14 @@ fun SettingsScreen(state: SettingsState, onBack: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(DataEaterGap),
         ) {
-            // --- the two areas, model first as the mockups show ---------
+            // --- model and database preferences -------------------------
             OpenRouterCard(state.openRouter, state.onlineActive, state.isBusy || state.isDatabaseBusy,
                 state.onUseOpenRouter, state.onUseLocal, state.onRemoveOpenRouterKey)
             ReplyBehaviorCard(state.replyBehavior, state.isBusy || state.isDatabaseBusy, state.onReplyBehaviorChange)
             ModelSelectionCard(
                 state = state,
-                onGetModels = { getModels = true },
                 isOpen = open == OpenArea.MODEL,
+                onDownloadModels = { getModels = true },
                 onToggle = {
                     open = if (open == OpenArea.MODEL) OpenArea.NONE else OpenArea.MODEL
                 },
@@ -252,6 +253,8 @@ fun SettingsScreen(state: SettingsState, onBack: () -> Unit) {
                 enabled = !state.isBusy && !state.isDatabaseBusy,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             ) { Text("Create database", modifier = Modifier.padding(vertical = 8.dp)) }
+            Button(onClick = state.onBenchmark, enabled = !state.isBusy && !state.isDatabaseBusy,
+                modifier = Modifier.fillMaxWidth()) { Text("Start benchmark", modifier = Modifier.padding(vertical = 8.dp)) }
         }
     }
 }
@@ -269,8 +272,8 @@ fun SettingsScreen(state: SettingsState, onBack: () -> Unit) {
 @Composable
 private fun ModelSelectionCard(
     state: SettingsState,
-    onGetModels: () -> Unit,
     isOpen: Boolean,
+    onDownloadModels: () -> Unit,
     onToggle: () -> Unit,
 ) {
     DataEaterCard(modifier = Modifier.fillMaxWidth()) {
@@ -297,15 +300,15 @@ private fun ModelSelectionCard(
             )
 
             ExpandedArea(visible = isOpen) {
+                OutlinedButton(onClick = onDownloadModels, modifier = Modifier.fillMaxWidth()) {
+                    Text("Download models")
+                }
                 when {
                     !state.hasStorageAccess -> PermissionNeeded(state)
                     state.models.isEmpty() -> NoModelsYet(state)
                     else -> LoadableModels(state)
                 }
 
-                OutlinedButton(onClick = onGetModels, modifier = Modifier.fillMaxWidth()) {
-                    Text("Get models")
-                }
                 if (state.download.active) {
                     LinearProgressIndicator(progress = { state.download.progress }, modifier = Modifier.fillMaxWidth())
                     Text(state.download.message, style = MaterialTheme.typography.bodySmall)
@@ -556,7 +559,7 @@ private fun DatabaseSelectionCard(
                         onClick = { state.onChooseDatabase(com.dataeater.app.data.DatabaseChoice.ALL) },
                         enabled = !state.isBusy,
                     ) { Text(com.dataeater.app.data.DatabaseChoice.ALL) }
-                    Text("Search every open database together. Locked files need a valid Unlock Code.")
+                    Text("Choose the databases to search together. Locked files need a valid Unlock Code.")
                 }
                 for (database in state.databases) {
                     DatabaseRow(
@@ -1107,5 +1110,4 @@ private fun StatusLine(text: String, isRunning: Boolean) {
         )
     }
 }
-
 

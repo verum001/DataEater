@@ -16,7 +16,7 @@ document excerpts requires a separate opt-in.
 ## Get started
 
 1. Install the APK from GitHub Releases. Android may ask to allow installation.
-2. Open the app, grant storage access and choose **Download AI**, or configure
+2. Open the app, grant storage access and choose **Download AI** or **Settings → Model Selection → Download models**, or configure
    **Settings → AI connection → OpenRouter** with your own API key.
 3. Download manuals through **Settings → Database Selection → Download databases**,
    create a database through **Settings → Create database**, or put an existing
@@ -30,12 +30,15 @@ access-code unlocking requires Android 13+. Storage and memory requirements
 vary by model. The interface is currently English. No model or real manual is
 bundled. See [supported devices](docs/supported-devices.md).
 
+Current release: [0.1.7.2](https://github.com/verum001/DataEater/releases/tag/v0.1.7.2).
+
 ## Features
 
 - Local AI and optional OpenRouter online AI, selected explicitly.
 - Document questions with page references and Strict/Balanced/Flexible grounding.
 - Short/Normal/Detailed reply preferences.
-- Model downloads with checksums, visible progress and cancellation.
+- Model downloads with Recommended/All modes, publisher descriptions, checksums, progress and cancellation.
+- Local model benchmarks with question lists, database selection, ratings and exportable comparisons.
 - Saved conversations, separate per-session choices, text copy and confirmed deletion.
 - Database downloads with expandable descriptions, checksums and versioned files.
 - Simple database creation and manual LLM optimisation on Android.
@@ -110,3 +113,5 @@ Versioned manual collections are available in [DataEater-Databases](https://gith
 ### Download and create databases
 
 Settings → Download databases lists the latest published versions in DataEater-Databases. Settings → Create database offers file selection, optional encryption and a manual LLM optimisation ZIP. Private database keys and licence generation are available in the secret key vault below the creation controls. See [database downloads](docs/DATABASE_DOWNLOADS.md) and [Android builder](docs/ANDROID_BUILDER.md).
+
+Compare installed models with Settings → Start benchmark. Use your own questions, selected databases and optional star ratings; save or share reports with phone details and timings. See [benchmark guide](docs/BENCHMARKS.md).

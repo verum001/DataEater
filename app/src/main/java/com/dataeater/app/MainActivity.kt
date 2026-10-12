@@ -276,6 +276,10 @@ fun DataEaterScreen(
      * thing that writes conversations to disk, and Compose saving it across a
      * configuration change would only produce a second, competing copy.
      */
+    val benchmarks = remember { com.dataeater.app.benchmark.BenchmarkManager.get(context) }
+    val benchmarkState by benchmarks.state.collectAsState()
+    var showBenchmark by rememberSaveable { mutableStateOf(false) }
+    var showBenchmarkChat by rememberSaveable { mutableStateOf(false) }
     val sessions = remember { SessionController(SessionStore(context)) }
     var session by remember { mutableStateOf<com.dataeater.app.chat.Session?>(null) }
     var draft by remember { mutableStateOf("") }
@@ -325,6 +329,8 @@ fun DataEaterScreen(
      * Starts on whatever was open last time, provided that file is still
      * there. See [DatabaseChoice] for why the fallback matters.
      */
+    var showMultipleDatabases by remember { mutableStateOf(false) }
+    var multipleDatabases by remember { mutableStateOf(DatabaseChoice.selection(context)) }
     var selectedDatabase by remember {
         mutableStateOf(
             DatabaseChoice.restore(
@@ -514,6 +520,7 @@ fun DataEaterScreen(
      */
     fun recordDatabaseInSession(name: String) {
         val updated = sessions.updateSettings(databaseName = name) ?: return
+        if (name == DatabaseChoice.ALL) DatabaseChoice.rememberSelection(context, multipleDatabases, updated.id)
         session = updated
     }
 
@@ -772,8 +779,9 @@ fun DataEaterScreen(
     fun openSelectedDatabase(): OpenResult {
         if (selectedDatabase.isBlank()) return OpenResult.Empty
         if (selectedDatabase == DatabaseChoice.ALL) {
+            if (multipleDatabases.isEmpty()) return OpenResult.Empty
             val opened = mutableListOf<DatabaseReader.OpenedDatabase>()
-            val excluded = mutableListOf<String>()
+            val excluded = (multipleDatabases - availableDatabases.map { it.displayName }.toSet()).toMutableList()
             var retainedBytes = 0L
             var retainedPassages = 0L
             fun addToCollection(value: DatabaseReader.OpenedDatabase) {
@@ -782,7 +790,7 @@ fun DataEaterScreen(
                 DatabaseCollection.checkSize(retainedBytes, retainedPassages)
                 opened.add(value)
             }
-            for (candidate in availableDatabases) {
+            for (candidate in availableDatabases.filter { it.displayName in multipleDatabases }) {
                 when (val status = DatabaseLock.inspect(candidate.file)) {
                     is DatabaseLock.Status.Open -> addToCollection(DatabaseReader.openFile(candidate.file))
                     is DatabaseLock.Status.Locked -> {
@@ -1009,7 +1017,8 @@ fun DataEaterScreen(
     fun databaseChoices(): List<String> = DatabaseChoice.choices(availableDatabases.map { it.displayName })
 
     fun databaseIdFor(label: String): String? =
-        availableDatabases.firstOrNull { it.displayName == label }?.displayName
+        if (label == DatabaseChoice.ALL) DatabaseChoice.ALL
+        else availableDatabases.firstOrNull { it.displayName == label }?.displayName
 
     /** [inspectAll] without suspending, for a path that cannot. */
     fun inspectAllBlocking(): Map<String, DatabaseLock.Status> =
@@ -1102,6 +1111,7 @@ fun DataEaterScreen(
      */
     fun chooseAndRoute(id: String) {
         if (isBusy || isDatabaseBusy) return
+        if (id == DatabaseChoice.ALL) { showMultipleDatabases = true; return }
         if (id == selectedDatabase) return
 
         val status = availableDatabases
@@ -1268,6 +1278,9 @@ fun DataEaterScreen(
     val readStoragePermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { refreshStorageAccess() }
+    val benchmarkWritePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        benchmarks.message(if (granted) "Storage access granted. Tap Run benchmark." else "Storage write access is needed to save benchmark results.")
+    }
     val storageSettings = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) { refreshStorageAccess() }
@@ -1357,7 +1370,12 @@ fun DataEaterScreen(
         aiStatus = ""
 
         // Restore the database if this session was talking about a different one.
-        if (restored.databaseName.isNotBlank() && restored.databaseName != selectedDatabase) {
+        if (restored.databaseName == DatabaseChoice.ALL || restored.databaseName == "All unlocked databases") {
+            multipleDatabases = DatabaseChoice.selection(context, restored.id)
+            selectedDatabase = DatabaseChoice.ALL
+            DatabaseChoice.remember(context, selectedDatabase)
+            rescanDatabases()
+        } else if (restored.databaseName.isNotBlank() && restored.databaseName != selectedDatabase) {
             val known = restored.databaseName in databaseChoices()
             if (known) {
                 selectedDatabase = restored.databaseName
@@ -1535,7 +1553,7 @@ fun DataEaterScreen(
 
     // The back button closes whatever is on top, innermost first.
     BackHandler(enabled = showUnlock) { choose("") }
-    BackHandler(enabled = showSettings && !showBuilder) { showSettings = false }
+    BackHandler(enabled = showSettings && !showBuilder && !showBenchmark && !showBenchmarkChat) { showSettings = false }
     BackHandler(enabled = showSearch && !showSettings) { showSearch = false }
     BackHandler(enabled = showDrawer && !showSettings && !showSearch) {
         showDrawer = false
@@ -1545,6 +1563,24 @@ fun DataEaterScreen(
     val openDatabase = database
 
     when {
+        (showBenchmarkChat || benchmarkState.busy) && benchmarkState.run != null && !showBenchmark ->
+            com.dataeater.app.benchmark.BenchmarkChat(benchmarks, benchmarkState, downloadState,
+                onBack = { showBenchmarkChat = false; showBenchmark = true })
+        showBenchmark -> com.dataeater.app.benchmark.BenchmarkScreen(benchmarks, benchmarkState,
+            models, availableDatabases, canRun = !isBusy && !isDatabaseBusy,
+            onRefresh = { refreshStorageAccess(); rescanDatabases() },
+            onRun = {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R && ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    benchmarkWritePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                } else if (!isBusy && !isDatabaseBusy && benchmarks.start(preferGpu, replyBehavior) {
+                    val previous = engine; engine = null
+                    withContext(Dispatchers.IO) { previous?.close() }
+                    aiStatus = "Select a model to resume chatting after benchmarking."
+                }) { showBenchmark = false; showBenchmarkChat = true; showSettings = false; showDrawer = false }
+            },
+            onBack = { if (benchmarkState.busy) { showBenchmark = false; showBenchmarkChat = true } else { showBenchmark = false; showSettings = true } },
+            onView = { showBenchmark = false; showBenchmarkChat = true },
+        )
         showBuilder -> BuilderScreen(
             model = remember { BuilderViewModel.get(context.applicationContext as android.app.Application) },
             canUseDatabase = hasStorageAccess && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ||
@@ -1582,7 +1618,8 @@ fun DataEaterScreen(
                 // one here and leaving the user in settings would be a dead
                 // end with no way forward.
                 onChooseDatabase = { chosen ->
-                    if (chosen != selectedDatabase) {
+                    if (chosen == DatabaseChoice.ALL) showMultipleDatabases = true
+                    else if (chosen != selectedDatabase) {
                         choose(chosen)
                         // A locked database cannot be opened, so the only way
                         // forward is its Unlock Code, and that is entered on
@@ -1666,6 +1703,7 @@ fun DataEaterScreen(
                 onUseLocal = { useLocalAi() },
                 onRemoveOpenRouterKey = { removeOpenRouterKey() },
                 onCreateDatabase = { showBuilder = true },
+                onBenchmark = { rescanModels(); showBenchmark = true },
                 onDownloadDatabases = { showDatabaseCatalog = true; databaseDownloads.refresh() },
             ),
             onBack = { showSettings = false },
@@ -1835,6 +1873,18 @@ fun DataEaterScreen(
 
         }
     }
+    LaunchedEffect(selectedDatabase, availableDatabases) {
+        if (selectedDatabase == DatabaseChoice.ALL && multipleDatabases.isEmpty() && availableDatabases.isNotEmpty()) showMultipleDatabases = true
+    }
+    if (showMultipleDatabases) com.dataeater.app.ui.MultipleDatabaseDialog(
+        availableDatabases.map { it.displayName }, multipleDatabases, isBusy || isDatabaseBusy,
+        onApply = { names ->
+            multipleDatabases = names
+            DatabaseChoice.rememberSelection(context, names, session?.id)
+            showMultipleDatabases = false
+            choose(DatabaseChoice.ALL)
+        }, onDismiss = { showMultipleDatabases = false },
+    )
     if (showDatabaseCatalog) DatabaseDownloadDialog(databaseCatalog, databaseDownload, availableDatabases,
         hasStorageAccess, databaseDownloads::refresh, { entry ->
             pendingDatabaseDownload = entry

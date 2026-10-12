@@ -38,10 +38,18 @@ object DatabaseCollection {
             database.chunks.map { it.copy(id = "$index:${it.id}", sourceId = "$index:${it.sourceId}") }
         }
         val description = "Searching: " + databases.joinToString { it.fileName.ifBlank { it.manifest.name } } +
-            if (excluded.isEmpty()) "" else ". Locked files excluded: ${excluded.joinToString()}"
+            if (excluded.isEmpty()) "" else ". Unavailable databases excluded: ${excluded.joinToString()}"
+        val scopeBytes = java.io.ByteArrayOutputStream()
+        java.io.DataOutputStream(scopeBytes).use { data ->
+            databases.forEach { db -> listOf(db.fileName, db.manifest.databaseId).forEach { part ->
+                val encoded = part.toByteArray(Charsets.UTF_8); data.writeInt(encoded.size); data.write(encoded)
+            } }
+        }
+        val scopeId = java.security.MessageDigest.getInstance("SHA-256").digest(scopeBytes.toByteArray())
+            .joinToString("") { "%02x".format(it) }
         return DatabaseReader.OpenedDatabase(
             manifest = databases.first().manifest.copy(
-                databaseId = "collection", name = DatabaseChoice.ALL,
+                databaseId = "collection:" + scopeId, name = DatabaseChoice.ALL,
                 description = description, language = "multiple", license = "See each source database",
                 encryption = "none", creatorPublicKey = "", contact = "", creator = "",
                 documentCount = sources.size, chunkCount = chunks.size,

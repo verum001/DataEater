@@ -15,7 +15,7 @@ import java.io.File
  */
 class ModelDownloads private constructor(context: Context) {
     data class State(val modelId: String? = null, val progress: Float = 0f,
-        val message: String = "", val active: Boolean = false, val installed: Int = 0)
+        val message: String = "", val active: Boolean = false, val installed: Int = 0, val entry: ModelCatalog.Entry? = null)
     private val app = context.applicationContext
     private val manager = app.getSystemService(DownloadManager::class.java)
     private val prefs = app.getSharedPreferences("model_download", Context.MODE_PRIVATE)
@@ -28,16 +28,19 @@ class ModelDownloads private constructor(context: Context) {
     private fun staging(entry: ModelCatalog.Entry) = File(requireNotNull(app.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)), "${entry.id}.part")
 
     init {
+        app.getSharedPreferences("downloaded-model-catalog", Context.MODE_PRIVATE).all.values
+            .filterIsInstance<String>().mapNotNull(HuggingFaceModels::decode).forEach(ModelCatalog::registerDownloaded)
         cleanupStaged()
-        val entry = ModelCatalog.entries.find { it.id == prefs.getString("modelId", null) }
+        val entry = prefs.getString("entry", null)?.let(HuggingFaceModels::decode)
+            ?: ModelCatalog.entries.find { it.id == prefs.getString("modelId", null) }
         if (downloadId >= 0 && entry != null) watch(entry)
     }
 
     @Synchronized fun start(entry: ModelCatalog.Entry) {
         if (mutable.value.active) return
-        require(entry in ModelCatalog.entries)
+        require(HuggingFaceModels.valid(entry))
         val attempt = ++generation
-        mutable.value = mutable.value.copy(modelId = entry.id, message = "Preparing download…", active = true, progress = 0f)
+        mutable.value = mutable.value.copy(modelId = entry.id, message = "Preparing download…", active = true, progress = 0f, entry = entry)
         worker = scope.launch {
             try {
                 if (!ModelFiles.hasStorageAccess(app)) error("Storage access required")
@@ -60,7 +63,7 @@ class ModelDownloads private constructor(context: Context) {
                 synchronized(this@ModelDownloads) {
                     if (attempt != generation) throw CancellationException()
                     downloadId = manager.enqueue(request)
-                    prefs.edit().putLong("downloadId", downloadId).putString("modelId", entry.id).commit()
+                    prefs.edit().putLong("downloadId", downloadId).putString("modelId", entry.id).putString("entry", HuggingFaceModels.encode(entry)).commit()
                 }
                 poll(entry, attempt)
             } catch (e: CancellationException) { throw e }
@@ -70,7 +73,7 @@ class ModelDownloads private constructor(context: Context) {
 
     private fun watch(entry: ModelCatalog.Entry) {
         val attempt = ++generation
-        mutable.value = mutable.value.copy(modelId = entry.id, active = true, message = "Resuming download…")
+        mutable.value = mutable.value.copy(modelId = entry.id, active = true, message = "Resuming download…", entry = entry)
         worker = scope.launch {
             try { poll(entry, attempt) }
             catch (e: CancellationException) { throw e }
@@ -102,9 +105,12 @@ class ModelDownloads private constructor(context: Context) {
                                 synchronized(this) {
                                     if (attempt != generation || !transferJob.isActive) throw InterruptedException()
                                     publish()
+                                    app.getSharedPreferences("downloaded-model-catalog", Context.MODE_PRIVATE).edit()
+                                        .putString(entry.fileName, HuggingFaceModels.encode(entry)).commit()
+                                    ModelCatalog.registerDownloaded(entry)
                                     clearRecord()
                                     manager.remove(id)
-                                    mutable.value = State(entry.id, 1f, "Downloaded. Ready to load.", false, mutable.value.installed + 1)
+                                    mutable.value = State(entry.id, 1f, "Downloaded. Ready to load.", false, mutable.value.installed + 1, entry)
                                 }
                             }
                         } catch (e: Exception) {
@@ -130,7 +136,7 @@ class ModelDownloads private constructor(context: Context) {
         generation++
         worker?.cancel()
         if (downloadId >= 0) manager.remove(downloadId)
-        val entry = ModelCatalog.entries.find { it.id == mutable.value.modelId }
+        val entry = mutable.value.entry ?: ModelCatalog.entries.find { it.id == mutable.value.modelId }
         entry?.let { staging(it).delete() }
         cleanupStaged()
         clearRecord()

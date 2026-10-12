@@ -51,3 +51,50 @@ An explicit All unlocked databases selection forms one in-memory search collecti
 Database downloads use the existing public database repository's release API rather than a fixed list embedded in the APK. Android DownloadManager persists transfers; verification and atomic publication precede database discovery. The catalogue rejects missing checksums and unexpected origins rather than silently falling back to an older asset.
 
 The simple builder composes existing format-v1 extraction, review and encryption operations. Original documents accompany manual LLM review exports; source files and parsed originals are fingerprinted, and page identities are retained. A local dataSync foreground service supports background preparation without adding a dependency. Publisher secrets remain in the private encrypted vault, separate from review ZIPs. Database-specific content keys link to their encrypted artifact and matching signing key for licence issuance. Key removal affects future issuance, not existing device-bound codes.
+
+## D-026 — Selected manual collections and live model discovery (12 October 2026)
+
+Search in several databases requires an explicit checkbox selection. The list is
+saved globally for reopening and with each chat; files outside that selection
+are not opened. Missing or locked files are reported. Collection identifiers
+include selected file identities so chat memory does not cross different groups.
+
+The model catalogue queries public Hugging Face metadata, pins current commits
+and LFS checksums, and distinguishes exact tested files from untested versions.
+A bounded recent search and memory estimate aid selection without claiming that
+all .litertlm bundles are compatible. Unique versioned filenames preserve old
+files; persisted download metadata retains verification across process restarts.
+No repository code is fetched or executed. Research target APKs and records stay
+frozen separately from these main-project changes.
+
+## D-027 — Curated model mode and publisher descriptions (12 October 2026)
+
+Recommended offers exact reviewed Gemma E2B, Qwen2.5 1.5B and Qwen3 4B files;
+All adds recent public verified-file metadata. Recommendation requires repository,
+remote filename, byte count and SHA-256 agreement with the reviewed file. Updated
+files remain untested until separately checked. Publisher descriptions are lazy,
+revision-pinned plain-text excerpts with bounded responses; model cards are data,
+not executable content or proof of answer quality. Download models lives within
+the expanded Model Selection area. Routine updates increment the final version
+component: 0.1.7.1, 0.1.7.2 and onward, alongside Android's version code.
+
+
+## D-028 — Local model comparisons (12 October 2026)
+
+Start benchmark uses installed local engines sequentially, a captured set of
+questions and databases, the existing ChatResponder and bounded-generation path,
+and fresh histories. Its transcript shares the main chat components but is stored
+separately from ordinary chats. The main chat engine is released before comparison
+engines allocate memory. No OpenRouter requests or model downloads are initiated.
+
+Monotonic load, retrieval, first-text and answer clocks distinguish missing
+passages, failures and cancellation from successful model output. Atomic JSON
+checkpoints and readable text reports persist completed answers and optional
+ratings in DataEater/benchmark. Exports use Downloads and a narrowly scoped cache
+FileProvider; multiple selections share through Android. Process interruption
+is reported on reopening rather than showing a partial run as finished.
+
+No accuracy claim follows from timing or subjective ratings. Cache state, backend
+fallback, model-specific limits and selected/fitted evidence are described in
+reports. Five-minute generation limits bound an individual answer; native loading
+may finish before cancellation releases its resources.
