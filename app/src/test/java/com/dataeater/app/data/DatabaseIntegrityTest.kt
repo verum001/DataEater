@@ -93,7 +93,7 @@ class DatabaseIntegrityTest {
     @Test
     fun changedEncryptedPayloadIsRefusedBeforeDecryption() {
         val manifest = """{"format":"dataeater","format_version":1,
-            "encryption":"aes-256-gcm","payload_nonce":"unused",
+            "database_id":"integrity-test","encryption":"aes-256-gcm","payload_nonce":"AAAAAAAAAAAAAAAA",
             "files":{"payload.enc":{"sha256":"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}}} """
         withPackage(mapOf("manifest.json" to manifest.toByteArray(), "payload.enc" to byteArrayOf(1))) { file ->
             val error = assertThrows(DatabaseReader.IntegrityException::class.java) {

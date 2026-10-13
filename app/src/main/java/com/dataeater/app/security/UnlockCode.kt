@@ -1,6 +1,7 @@
 package com.dataeater.app.security
 
 import org.json.JSONObject
+import com.dataeater.app.data.DatabaseIdentity
 import java.time.LocalDate
 
 /**
@@ -35,6 +36,8 @@ object UnlockCode {
     /** Mirrors `packaging.LICENCE_FORMAT` / `LICENCE_VERSION`. */
     const val FORMAT = "dataeater-licence"
     const val VERSION = 1
+    const val MAX_CODE_BYTES = 64 * 1024
+
 
     /** Thrown for anything the user needs to be told about. */
     class Refused(message: String) : Exception(message)
@@ -62,13 +65,15 @@ object UnlockCode {
      * @throws Refused if the text is empty, is not base64, or is not a licence
      */
     fun parse(text: String): JSONObject {
+        if (text.length > MAX_CODE_BYTES * 2) throw Refused("This Unlock Code is too large.")
         val cleaned = text.filterNot { it.isWhitespace() }
+        if (cleaned.length > MAX_CODE_BYTES) throw Refused("This Unlock Code is too large.")
         if (cleaned.isEmpty()) {
             throw Refused("No Unlock Code was entered.")
         }
 
         val decoded = try {
-            java.util.Base64.getMimeDecoder().decode(cleaned)
+            java.util.Base64.getDecoder().decode(cleaned)
         } catch (problem: IllegalArgumentException) {
             throw Refused(
                 "That is not a DataEater Unlock Code. Check that you copied " +
@@ -77,7 +82,9 @@ object UnlockCode {
         }
 
         val licence = try {
-            JSONObject(String(decoded, Charsets.UTF_8))
+            val json = Charsets.UTF_8.newDecoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT).decode(java.nio.ByteBuffer.wrap(decoded)).toString()
+            com.dataeater.app.data.JsonSafety.check(json)
+            JSONObject(json)
         } catch (problem: Exception) {
             throw Refused("The Unlock Code could not be read.")
         }
@@ -111,6 +118,7 @@ object UnlockCode {
         creatorPublicKeyBase64: String,
         expectedDatabaseId: String,
         today: LocalDate = LocalDate.now(),
+        expectedDatabaseFingerprint: String? = null,
     ): Checked {
         // The signature must be checked BEFORE the expiry. An unsigned code
         // claiming to be expired is not worth reading the date from; an
@@ -140,16 +148,21 @@ object UnlockCode {
             )
         }
 
-        val codeDatabaseId = licence.optString("database_id").trim()
-        if (expectedDatabaseId.isNotBlank() &&
-            codeDatabaseId.isNotEmpty() &&
-            !codeDatabaseId.equals(expectedDatabaseId, ignoreCase = true)
-        ) {
-            return Checked.Rejected(
-                "This Unlock Code is for a different database (" +
-                    "$codeDatabaseId), not for this one. Using it here would " +
-                    "fail anyway."
-            )
+        val codeDatabaseId = licence.opt("database_id")
+        if (!DatabaseIdentity.validId(expectedDatabaseId) || !DatabaseIdentity.validId(codeDatabaseId)) {
+            return Checked.Rejected("This Unlock Code or database has a missing or ambiguous identifier. Ask the creator to correct it.")
+        }
+        if (codeDatabaseId != expectedDatabaseId) {
+            return Checked.Rejected("This Unlock Code is for a different database ($codeDatabaseId), not for this one.")
+        }
+        if (licence.has("database_fingerprint")) {
+            val binding = licence.opt("database_fingerprint") as? String
+            if (binding == null || !Regex("sha256:[0-9a-f]{64}").matches(binding) || binding != expectedDatabaseFingerprint) {
+                return Checked.Rejected("This Unlock Code is for a different encrypted database file. Ask the creator for a matching code.")
+            }
+        }
+        if (licence.opt("format") != FORMAT || licence.opt("version") != VERSION || licence.optJSONObject("wrap") == null) {
+            return Checked.Rejected("This is not a supported DataEater Unlock Code.")
         }
 
         return Checked.Accepted(licence)

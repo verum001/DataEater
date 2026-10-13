@@ -39,7 +39,7 @@ DEMO_DATABASE = os.path.join(PROJECT_ROOT, "dataeater", "databases",
 
 CREATOR = "Test Creator Ltd"
 CONTACT = "licences@test-creator.example"
-CREATOR_PUBLIC_KEY = "MCowBQYDK2VwAyEABT10elTfT5weCVJPjP4gFWXuD+qO6mnMUJkTrWrCk8A="
+CREATOR_PUBLIC_KEY = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUadYCDOJjqGxg8vXNQpAmQeMbvHB4Y6XDNdoMDXyXn0BEFInErC1p8/wgWhUhphKlOaDHtrEbnNg+p2DSnqBoQ=="
 
 
 def build_locked_file():

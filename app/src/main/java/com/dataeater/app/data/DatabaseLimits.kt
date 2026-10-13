@@ -64,6 +64,10 @@ object DatabaseLimits {
      */
     const val MAX_ENTRIES: Int = 10_000
 
+    const val MAX_PACKAGE_BYTES: Long = 128L * 1024 * 1024
+    const val MAX_SOURCES = 10_000
+    const val MAX_PASSAGES = 100_000
+
     /** How much is read at a time, so the count happens before any allocation. */
     const val READ_CHUNK_BYTES: Int = 64 * 1024
 

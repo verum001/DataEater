@@ -88,12 +88,9 @@ class BenchmarkManager private constructor(private val context: Context) {
                             is DatabaseLock.Status.Open -> DatabaseReader.openFile(db.file)
                             is DatabaseLock.Status.Unreadable -> error("${db.file.name}: ${lock.reason}")
                             is DatabaseLock.Status.Locked -> {
-                                val stored = LicenceStore.get(context, lock.manifest.databaseId) ?: error("Unlock ${db.file.name} in Database Selection first.")
+                                val stored = LicenceStore.get(context, lock.manifest.databaseId, lock.manifest.creatorPublicKey) ?: error("Unlock ${db.file.name} in Database Selection first.")
                                 val licence = UnlockCode.parse(String(stored, Charsets.UTF_8))
-                                when (UnlockCode.check(licence, lock.manifest.creatorPublicKey, expectedDatabaseId = lock.manifest.databaseId)) {
-                                    is UnlockCode.Checked.Rejected -> error("Unlock ${db.file.name} with a valid licence first.")
-                                    is UnlockCode.Checked.Accepted -> DatabaseReader.openLocked(db.file, UnlockCode.recoverContentKey(licence))
-                                }
+                                DatabaseReader.openLicensed(db.file, licence, lock.manifest)
                             }
                         }
                         bytes += value.chunks.sumOf { (it.text.toByteArray().size + it.searchContext.toByteArray().size).toLong() }

@@ -172,7 +172,7 @@ object DeviceKeys {
      * the customer copied correctly must not be rejected over a stray newline.
      */
     fun decodeBase64(text: String): ByteArray =
-        java.util.Base64.getMimeDecoder().decode(text.trim())
+        java.util.Base64.getDecoder().decode(text.filterNot(Char::isWhitespace))
 
     /**
      * A JCA object for the creator's signature, from a provider that can do it.
@@ -199,7 +199,7 @@ object DeviceKeys {
         // Android phone offers Conscrypt, a HarmonyOS phone offers HarmonyJSSE.
         var problem: Exception? = null
         for (provider in java.security.Security.getProviders()) {
-            if (provider.name == "AndroidKeyStore") {
+            if (provider.name.startsWith("AndroidKeyStore")) {
                 continue
             }
             try {
@@ -231,6 +231,7 @@ object DeviceKeys {
      * mismatched key gives a clear reason instead of a bare failure.
      */
     fun loadCreatorPublicKey(creatorPublicKeyBase64: String): java.security.PublicKey {
+        require(creatorPublicKeyBase64.length <= 2048) { "Invalid public key encoding length." }
         val key = crypto { provider ->
             val factory = if (provider == null) {
                 java.security.KeyFactory.getInstance(EC_ALGORITHM)
@@ -245,14 +246,21 @@ object DeviceKeys {
         if (key !is java.security.interfaces.ECPublicKey) {
             throw LicenceException("That is not an EC creator public key.")
         }
-        val params = (key as? java.security.spec.ECParameterSpec)
-        val order = params?.order
-        if (order != null && order.bitLength() != CURVE_BITS) {
-            throw LicenceException(
-                "That creator key is on a ${order.bitLength()}-bit curve, " +
-                    "but this app requires P-256."
-            )
+        val expected = crypto { provider ->
+            val parameters = if (provider == null) java.security.AlgorithmParameters.getInstance("EC") else java.security.AlgorithmParameters.getInstance("EC", provider)
+            parameters.init(ECGenParameterSpec(CURVE))
+            parameters.getParameterSpec(java.security.spec.ECParameterSpec::class.java)
         }
+        val params = key.params
+        if (params.curve != expected.curve || params.generator != expected.generator || params.order != expected.order || params.cofactor != expected.cofactor) {
+            throw LicenceException("That public key is not on the required P-256 curve.")
+        }
+        val point = key.w; val field = params.curve.field as java.security.spec.ECFieldFp; val p = field.p
+        if (point.affineX.signum() < 0 || point.affineY.signum() < 0 || point.affineX >= p || point.affineY >= p ||
+            point.affineY.multiply(point.affineY).mod(p) != point.affineX.pow(3).add(params.curve.a.multiply(point.affineX)).add(params.curve.b).mod(p)) {
+            throw LicenceException("That public key contains an invalid curve point.")
+        }
+
         return key
     }
 
@@ -286,12 +294,6 @@ object DeviceKeys {
      * is refused. That is what stops somebody giving themselves more time.
      */
     fun verifySignature(licence: org.json.JSONObject, creatorPublicKeyBase64: String) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            throw LicenceException(
-                "Checking the creator's signature needs Android 13 or newer. " +
-                    "This phone is Android " + Build.VERSION.RELEASE + "."
-            )
-        }
         verifySignatureBytes(licence, creatorPublicKeyBase64)
     }
 
@@ -351,8 +353,21 @@ object DeviceKeys {
     fun recoverContentKey(licence: org.json.JSONObject): ByteArray {
         val wrap = licence.optJSONObject("wrap")
             ?: throw LicenceException("This Unlock Code has no key inside.")
+        validateWrap(wrap)
         val (_, privateKey) = keyPair()
         return recoverContentKeyWith(wrap, privateKey)
+    }
+
+    private fun validateWrap(wrap: org.json.JSONObject) {
+        try {
+        if (wrap.opt("format") != WRAP_FORMAT || wrap.opt("version") != WRAP_VERSION) throw LicenceException("Unsupported wrapped key format.")
+        val nonce = wrap.opt("nonce") as? String ?: throw LicenceException("Invalid wrapped key nonce.")
+        val ciphertext = wrap.opt("wrapped_key") as? String ?: throw LicenceException("Invalid wrapped key data.")
+        val public = wrap.opt("ephemeral_public_key") as? String ?: throw LicenceException("Invalid ephemeral key.")
+        if (nonce.length > 128 || ciphertext.length > 256 || decodeBase64(nonce).size != 12 || decodeBase64(ciphertext).size != 48) throw LicenceException("Invalid wrapped key or nonce length.")
+        loadCreatorPublicKey(public)
+        } catch (error: LicenceException) { throw error }
+        catch (_: Exception) { throw LicenceException("The wrapped key could not be validated.") }
     }
 
     /**
@@ -377,7 +392,7 @@ object DeviceKeys {
                 "This is not a DataEater Unlock Code (format='$format')."
             )
         }
-        val version = wrap.optInt("version", -1)
+        val version = (wrap.opt("version") as? Int) ?: -1
         if (version != WRAP_VERSION) {
             throw LicenceException(
                 "This Unlock Code is version $version; this app understands " +
@@ -386,9 +401,11 @@ object DeviceKeys {
         }
 
         try {
-            val ephemeralPublic = KeyFactory.getInstance("EC")
-                .generatePublic(X509EncodedKeySpec(
-                    decodeBase64(wrap.getString("ephemeral_public_key"))))
+            validateWrap(wrap)
+            val nonce = decodeBase64(wrap.getString("nonce"))
+            val ciphertext = decodeBase64(wrap.getString("wrapped_key"))
+            if (nonce.size != 12 || ciphertext.size != AES_KEY_BYTES + 16) throw LicenceException("The wrapped key or nonce has an invalid length.")
+            val ephemeralPublic = loadCreatorPublicKey(wrap.getString("ephemeral_public_key"))
 
             val agreement = KeyAgreement.getInstance("ECDH")
             agreement.init(privateKey)
@@ -402,10 +419,10 @@ object DeviceKeys {
                 Cipher.DECRYPT_MODE,
                 SecretKeySpec(wrappingKey, "AES"),
                 GCMParameterSpec(GCM_TAG_BITS,
-                    decodeBase64(wrap.getString("nonce"))),
+                    nonce),
             )
             return cipher.doFinal(
-                decodeBase64(wrap.getString("wrapped_key")))
+                ciphertext).also { if (it.size != AES_KEY_BYTES) throw LicenceException("Invalid recovered content key.") }
         } catch (problem: LicenceException) {
             throw problem
         } catch (problem: Exception) {
@@ -460,6 +477,7 @@ object DeviceKeys {
         info: ByteArray,
         length: Int,
     ): ByteArray {
+        require(length in 0..(255 * 32)) { "Invalid HKDF output length." }
         val mac = Mac.getInstance("HmacSHA256")
 
         mac.init(SecretKeySpec(salt, "HmacSHA256"))
@@ -487,6 +505,7 @@ object DeviceKeys {
 
     /** AES-GCM decryption, the same step for licences and for the payload. */
     fun gcmDecrypt(key: ByteArray, nonce: ByteArray, ciphertext: ByteArray): ByteArray {
+        require(key.size == AES_KEY_BYTES && nonce.size == 12 && ciphertext.size >= 16) { "Invalid AES-256-GCM input lengths." }
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(
             Cipher.DECRYPT_MODE,
@@ -518,16 +537,24 @@ object DeviceKeys {
      */
     fun signingBytes(licence: org.json.JSONObject): ByteArray {
         val text = StringBuilder()
-        val copy = org.json.JSONObject(licence.toString())
-        copy.remove("signature")
-        writeCanonicalJson(copy, text)
-        return text.toString().toByteArray(Charsets.UTF_8)
+        writeCanonicalJson(licence, text, true)
+        val bytes = Charsets.UTF_8.newEncoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+            .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT).encode(java.nio.CharBuffer.wrap(text))
+        return ByteArray(bytes.remaining()).also { bytes.get(it) }
+
     }
 
     /** Writes `value` as JSON with every object key in sorted order. */
-    private fun writeCanonicalJson(value: org.json.JSONObject, out: StringBuilder) {
+    private fun writeCanonicalJson(value: org.json.JSONObject, out: StringBuilder, skipSignature: Boolean = false) {
         out.append('{')
-        val keys = value.keys().asSequence().toList().sorted()
+        val keys = value.keys().asSequence().filter { !skipSignature || it != "signature" }.toList().sortedWith(Comparator { a, b ->
+            var x = 0; var y = 0; var compared = 0
+            while (x < a.length && y < b.length && compared == 0) {
+                val ac = Character.codePointAt(a, x); val bc = Character.codePointAt(b, y)
+                compared = ac.compareTo(bc); x += Character.charCount(ac); y += Character.charCount(bc)
+            }
+            if (compared != 0) compared else (a.length - x).compareTo(b.length - y)
+        })
         for ((index, key) in keys.withIndex()) {
             if (index > 0) out.append(',')
             writeJsonString(key, out)

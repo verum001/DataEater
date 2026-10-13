@@ -680,24 +680,13 @@ fun DataEaterScreen(
 
                 val licence = withContext(Dispatchers.IO) {
                     val parsed = UnlockCode.parse(enteredUnlockCode)
-                    val checked = UnlockCode.check(
-                        parsed,
-                        locked.manifest.creatorPublicKey,
-                        expectedDatabaseId = locked.manifest.databaseId,
-                    )
-                    if (checked is UnlockCode.Checked.Rejected) {
-                        throw UnlockCode.Refused(checked.reason)
-                    }
-
-                    // Past every check: now, and only now, the key pair.
-                    val contentKey = UnlockCode.recoverContentKey(parsed)
-                    Pair(DatabaseReader.openLocked(file, contentKey), contentKey)
+                    DatabaseReader.openLicensed(file, parsed, locked.manifest)
                 }
 
-                database = licence.first
+                database = licence
                 lockedDatabase = null
-                ragEngine = withContext(Dispatchers.Default) { RagEngine(licence.first.chunks, licence.first.sources) }
-                recordDatabaseInSession(licence.first.manifest.name)
+                ragEngine = withContext(Dispatchers.Default) { RagEngine(licence.chunks, licence.sources) }
+                recordDatabaseInSession(licence.manifest.name)
 
                 // Remembered so the database opens again next time, with no code to paste.
                 //
@@ -713,6 +702,7 @@ fun DataEaterScreen(
                     context,
                     locked.manifest.databaseId,
                     enteredUnlockCode.trim().toByteArray(Charsets.UTF_8),
+                    locked.manifest.creatorPublicKey,
                 )
                 enteredUnlockCode = ""
             } catch (problem: UnlockCode.Refused) {
@@ -740,24 +730,13 @@ fun DataEaterScreen(
         file: java.io.File,
         locked: DatabaseLock.Status.Locked,
     ): DatabaseReader.OpenedDatabase? {
-        val stored = LicenceStore.get(context, locked.manifest.databaseId)
+        val stored = LicenceStore.get(context, locked.manifest.databaseId, locked.manifest.creatorPublicKey)
             ?: return null
         val text = String(stored, Charsets.UTF_8)
 
         return try {
             val licence = UnlockCode.parse(text)
-            when (val checked = UnlockCode.check(
-                licence,
-                locked.manifest.creatorPublicKey,
-                expectedDatabaseId = locked.manifest.databaseId,
-            )) {
-                is UnlockCode.Checked.Rejected -> null
-                is UnlockCode.Checked.Accepted ->
-                    DatabaseReader.openLocked(
-                        file,
-                        UnlockCode.recoverContentKey(licence),
-                    )
-            }
+            DatabaseReader.openLicensed(file, licence, locked.manifest)
         } catch (problem: DatabaseReader.IntegrityException) {
             // A new licence cannot repair changed database bytes. Show the error.
             throw problem

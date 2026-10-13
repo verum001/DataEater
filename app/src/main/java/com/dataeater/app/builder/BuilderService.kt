@@ -19,6 +19,10 @@ class BuilderService : Service() {
             .setContentIntent(open).setOngoing(true).build()
         if (Build.VERSION.SDK_INT >= 29) startForeground(9201, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         else startForeground(9201, notification)
+        // Only release the worker after Android has accepted the foreground notification.
+        val ready = onReady
+        onReady = null
+        ready?.invoke()
         return START_NOT_STICKY
     }
     override fun onTimeout(startId: Int, fgsType: Int) {
@@ -26,6 +30,7 @@ class BuilderService : Service() {
         stopSelf()
     }
     companion object {
+        @Volatile var onReady: (() -> Unit)? = null
         @Volatile var cancelOperation: (() -> Unit)? = null
     }
 }

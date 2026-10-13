@@ -14,6 +14,15 @@ import java.io.File
 
 class BuilderFiles(private val context: Context) {
     data class Input(val uri: Uri, val name: String)
+    /** Keep SAF access when the picker offers it; some providers only grant temporary access. */
+    fun retainReadAccess(uri: Uri) {
+        if (uri.scheme != "content") return
+        try {
+            context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (_: SecurityException) {
+            // FileProvider and other temporary providers do not offer persistable grants.
+        }
+    }
     fun input(uri: Uri): Input {
         val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) cursor.getString(0) else null
@@ -70,11 +79,16 @@ class BuilderFiles(private val context: Context) {
     }
     fun supported(name: String) = name.substringAfterLast('.', "").lowercase() in setOf("pdf", "txt", "md", "markdown")
     fun copy(uri: Uri, target: File, limit: Long = 256L * 1024 * 1024) {
-        context.contentResolver.openInputStream(uri)?.use { input -> target.outputStream().use { output ->
-            val buffer = ByteArray(65536); var total = 0L
-            while (true) { BuilderCore.checkpoint(); val n = input.read(buffer); if (n < 0) break
-                total += n; require(total <= limit) { "This document is too large to process on the phone. Use a smaller file." }; output.write(buffer, 0, n) }
-        } } ?: error("The selected file could not be read. Choose it again.")
+        try {
+            context.contentResolver.openInputStream(uri)?.use { input -> target.outputStream().use { output ->
+                val buffer = ByteArray(65536); var total = 0L
+                while (true) { BuilderCore.checkpoint(); val n = input.read(buffer); if (n < 0) break
+                    total += n; require(total <= limit) { "This document is too large to process on the phone. Use a smaller file." }; output.write(buffer, 0, n) }
+            } } ?: error("The selected file could not be read. Choose it again.")
+        } catch (error: SecurityException) {
+            target.delete()
+            throw IllegalStateException("Access to a selected file has expired. Remove it, choose it again with Choose files, and retry.", error)
+        }
     }
     fun record(uri: Uri): JSONObject = context.contentResolver.openInputStream(uri)?.use {
         JSONObject(BuilderCore.bounded(it, 65536).toString(Charsets.UTF_8))
@@ -82,8 +96,8 @@ class BuilderFiles(private val context: Context) {
     fun extract(input: Input, temporary: File): BuilderCore.Document {
         require(supported(input.name)) { "Choose PDF, TXT or Markdown documents." }
         val source = File(temporary, "source-${java.util.UUID.randomUUID()}.${input.name.substringAfterLast('.')}")
-        copy(input.uri, source)
         try {
+            copy(input.uri, source)
             val fingerprint = java.security.MessageDigest.getInstance("SHA-256").let { digest ->
                 source.inputStream().use { stream -> val buffer = ByteArray(65536); while (true) { BuilderCore.checkpoint(); val n = stream.read(buffer); if (n < 0) break; digest.update(buffer, 0, n) } }
                 digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }

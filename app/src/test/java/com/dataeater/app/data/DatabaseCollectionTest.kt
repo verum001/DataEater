@@ -8,7 +8,7 @@ import org.junit.Test
 
 class DatabaseCollectionTest {
     private fun database(name: String, text: String) = DatabaseReader.OpenedDatabase(
-        DatabaseReader.parseManifest("""{"format":"dataeater","format_version":1,"name":"$name"}"""),
+        DatabaseReader.parseManifest("""{"format":"dataeater","format_version":1,"database_id":"$name","name":"$name"}"""),
         listOf(Chunk("c001", "s001", "Water", 12, text)),
         listOf(SourceInfo("s001", "Manual", "Publisher", 2002)), "$name.dataeater",
     )

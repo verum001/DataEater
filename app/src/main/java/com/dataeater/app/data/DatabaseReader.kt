@@ -1,10 +1,10 @@
 package com.dataeater.app.data
 
-import android.util.Base64
 import com.dataeater.app.model.Chunk
 import com.dataeater.app.model.DatabaseManifest
 import com.dataeater.app.model.SourceInfo
 import com.dataeater.app.security.DeviceKeys
+import com.dataeater.app.security.UnlockCode
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.InputStream
@@ -68,18 +68,15 @@ object DatabaseReader {
     private fun openPlain(openStream: () -> InputStream, fileName: String): OpenedDatabase {
         val manifestText = readTextFromPackage(openStream, MANIFEST_FILE)
         val manifest = parseManifest(manifestText)
-        val sources = parseSources(String(
-            readVerifiedBytes(openStream, manifestText, SOURCES_FILE), Charsets.UTF_8,
-        ))
-        val chunks = parseChunks(String(
-            readVerifiedBytes(openStream, manifestText, CHUNKS_FILE), Charsets.UTF_8,
-        ))
-        return OpenedDatabase(
+        if (manifest.encryption != "none") throw DataEaterException("This database is encrypted and needs an Unlock Code.")
+        val sources = parseSources(decodeText(readVerifiedBytes(openStream, manifestText, SOURCES_FILE)))
+        val chunks = parseChunks(decodeText(readVerifiedBytes(openStream, manifestText, CHUNKS_FILE)))
+        return validated(OpenedDatabase(
             manifest = manifest,
             chunks = chunks,
             sources = sources,
             fileName = fileName,
-        )
+        ))
     }
 
     /** Verify the same bytes that will be parsed or decrypted, before using them. */
@@ -101,15 +98,17 @@ object DatabaseReader {
      * has, so the ordinary parsing below is reused and there is only ever one
      * set of parsing rules to keep working.
      */
-    fun openLocked(file: java.io.File, contentKey: ByteArray): OpenedDatabase {
+    fun openLocked(file: java.io.File, contentKey: ByteArray, expectedIdentity: String? = null): OpenedDatabase {
         requireExists(file)
 
         val manifestText = readTextFromPackage({ file.inputStream() }, MANIFEST_FILE)
         val manifest = parseManifest(manifestText)
-        if (manifest.encryption.isBlank() || manifest.encryption == "none") {
+        if (manifest.encryption != "aes-256-gcm") {
             throw DataEaterException("This database is not encrypted.")
         }
 
+        val identity = DatabaseIdentity.fingerprint(JSONObject(manifestText))
+        if (expectedIdentity != null && identity != expectedIdentity) throw IntegrityException("The database changed while it was being unlocked. Open the file again.")
         val nonceBase64 = JSONObject(manifestText).optString("payload_nonce")
         if (nonceBase64.isBlank()) {
             throw DataEaterException("This database is damaged: it has no payload nonce.")
@@ -119,7 +118,7 @@ object DatabaseReader {
         val plain = try {
             DeviceKeys.gcmDecrypt(
                 contentKey,
-                Base64.decode(nonceBase64, Base64.DEFAULT),
+                DeviceKeys.decodeBase64(nonceBase64),
                 ciphertext,
             )
         } catch (problem: Exception) {
@@ -130,20 +129,46 @@ object DatabaseReader {
         }
 
         val envelope = try {
-            JSONObject(String(plain, Charsets.UTF_8))
+            val text = decodeText(plain); JsonSafety.check(text)
+            JSONObject(text)
         } catch (problem: Exception) {
             throw DataEaterException("The decrypted data could not be read.")
         }
-        if (envelope.optString("format") != "dataeater-payload") {
+        if (envelope.opt("format") != "dataeater-payload" || envelope.opt("version") != 1 || envelope.opt("chunks") !is String || envelope.opt("sources") !is String) {
             throw DataEaterException("This is not a DataEater payload.")
         }
 
-        return OpenedDatabase(
+        return validated(OpenedDatabase(
             manifest = manifest,
             chunks = parseChunks(envelope.optString("chunks")),
             sources = parseSources(envelope.optString("sources")),
             fileName = file.name,
-        )
+        ))
+    }
+
+    private fun validated(value: OpenedDatabase): OpenedDatabase {
+        val sourceIds = value.sources.map { it.id }.toSet()
+        if (sourceIds.any { it.isBlank() } || sourceIds.size != value.sources.size ||
+            value.chunks.map { it.id }.toSet().size != value.chunks.size || value.chunks.any { it.id.isBlank() || it.sourceId !in sourceIds } ||
+            value.manifest.documentCount != value.sources.size || value.manifest.chunkCount != value.chunks.size) {
+            throw DataEaterException("The database source identifiers, passage identifiers or counts do not match its contents.")
+        }
+        return value
+    }
+
+    /** All consumer paths verify the current manifest, signature and binding before ECDH. */
+    fun openLicensed(file: java.io.File, licence: JSONObject, expectedManifest: DatabaseManifest? = null,
+        today: java.time.LocalDate = java.time.LocalDate.now()): OpenedDatabase {
+        val text = manifestTextOf(file)
+        val manifest = parseManifest(text)
+        if (expectedManifest != null && (manifest.databaseId != expectedManifest.databaseId || manifest.creatorPublicKey != expectedManifest.creatorPublicKey)) {
+            throw IntegrityException("The database identity changed while it was being unlocked. Open the file again.")
+        }
+        val identity = DatabaseIdentity.fingerprint(JSONObject(text))
+        val checked = UnlockCode.check(licence, manifest.creatorPublicKey, manifest.databaseId, today, identity)
+        if (checked is UnlockCode.Checked.Rejected) throw UnlockCode.Refused(checked.reason)
+        val key = UnlockCode.recoverContentKey(licence)
+        return try { openLocked(file, key, identity) } finally { key.fill(0) }
     }
 
     /**
@@ -165,9 +190,10 @@ object DatabaseReader {
     }
 
     private fun requireExists(file: java.io.File) {
-        if (!file.exists()) {
+        if (!file.isFile) {
             throw DataEaterException("The file ${file.name} is not there any more.")
         }
+        if (file.length() > DatabaseLimits.MAX_PACKAGE_BYTES) throw DataEaterException("This database archive is too large to open safely.")
     }
     // ------------------------------------------------------------------
     // manifest.json
@@ -186,6 +212,7 @@ object DatabaseReader {
      * @throws DataEaterException when the text is not a manifest we understand
      */
     fun parseManifest(text: String): DatabaseManifest {
+        JsonSafety.check(text)
         val json = JSONObject(text)
 
         val format = json.optString("format")
@@ -195,7 +222,7 @@ object DatabaseReader {
             )
         }
 
-        val version = json.optInt("format_version", -1)
+        val version = (json.opt("format_version") as? Int) ?: -1
         if (version < 1) {
             throw DataEaterException("The database has no valid format_version field.")
         }
@@ -211,16 +238,20 @@ object DatabaseReader {
             )
         }
 
+        val id = DatabaseIdentity.requireId(json.opt("database_id"))
+        val rawScheme = if (!json.has("encryption")) "none" else json.opt("encryption") as? String
+        val scheme = rawScheme?.trim()?.lowercase()?.ifEmpty { "none" }
+        if (scheme !in listOf("none", "aes-256-gcm")) throw DataEaterException("This database uses unsupported encryption.")
         val counts = json.optJSONObject("counts")
 
         return DatabaseManifest(
-            databaseId = json.optString("database_id", "unknown"),
+            databaseId = id,
             name = json.optString("name", "Unnamed database"),
             description = json.optString("description", ""),
             formatVersion = version,
             language = json.optString("language", "unknown"),
             license = json.optString("license", "unknown"),
-            encryption = json.optString("encryption", "none"),
+            encryption = scheme!!,
             creator = json.optString("creator", ""),
             contact = json.optString("contact", ""),
             creatorPublicKey = json.optString("creator_public_key", ""),
@@ -237,14 +268,16 @@ object DatabaseReader {
     // ------------------------------------------------------------------
 
     fun parseSources(text: String): List<SourceInfo> {
+        JsonSafety.check(text)
         val array = JSONArray(text)
+        if (array.length() > DatabaseLimits.MAX_SOURCES) throw DataEaterException("This database contains too many sources.")
         val result = ArrayList<SourceInfo>(array.length())
 
         for (index in 0 until array.length()) {
             val obj = array.getJSONObject(index)
             result.add(
                 SourceInfo(
-                    id = obj.optString("id"),
+                    id = obj.opt("id") as? String ?: throw DataEaterException("Invalid source identifier."),
                     title = obj.optString("title"),
                     publisher = obj.optString("publisher"),
                     year = obj.optInt("year", 0),
@@ -260,14 +293,16 @@ object DatabaseReader {
         // JSONL means "one JSON object per line", so we simply read line by line.
         text.lineSequence().forEach { line ->
             if (line.isBlank()) return@forEach
+            if (result.size >= DatabaseLimits.MAX_PASSAGES) throw DataEaterException("This database contains too many passages.")
+            JsonSafety.check(line)
             val obj = JSONObject(line)
             result.add(
                 Chunk(
-                    id = obj.optString("id"),
-                    sourceId = obj.optString("source_id"),
+                    id = obj.opt("id") as? String ?: throw DataEaterException("Invalid passage identifier."),
+                    sourceId = obj.opt("source_id") as? String ?: throw DataEaterException("Invalid passage source."),
                     section = obj.optString("section"),
                     page = obj.optInt("page", 0),
-                    text = obj.optString("text"),
+                    text = obj.opt("text") as? String ?: throw DataEaterException("Invalid passage text."),
                     searchContext = obj.optString("search_context", "").take(2000),
                 )
             )
@@ -293,7 +328,12 @@ object DatabaseReader {
         openStream: () -> InputStream,
         wantedFile: String,
     ): String =
-        String(readBytesFromPackage(openStream, wantedFile), Charsets.UTF_8)
+        decodeText(readBytesFromPackage(openStream, wantedFile))
+
+    internal fun decodeText(bytes: ByteArray): String = try {
+        Charsets.UTF_8.newDecoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+            .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT).decode(java.nio.ByteBuffer.wrap(bytes)).toString()
+    } catch (_: Exception) { throw DataEaterException("The database text has a damaged encoding. It has not been opened.") }
 
     private fun readBytesFromPackage(
         openStream: () -> InputStream,
@@ -329,7 +369,10 @@ object DatabaseReader {
                 var entry = zip.nextEntry
                 var seen = 0
                 var remaining = maxScanBytes
+                val names = mutableSetOf<String>()
+                var found: ByteArray? = null
                 while (entry != null) {
+                    if (!names.add(entry.name)) throw DataEaterException("This database contains duplicate ZIP entries. It has not been opened.")
                     seen += 1
                     if (seen > maxEntries) {
                         throw DataEaterException(
@@ -340,14 +383,16 @@ object DatabaseReader {
                         )
                     }
                     if (!entry.isDirectory && entry.name == wantedFile) {
-                        return readEntryWithLimit(zip, wantedFile, limitBytes, remaining, maxScanBytes)
+                        found = readEntryWithLimit(zip, wantedFile, limitBytes, remaining, maxScanBytes)
+                        remaining -= found.size.toLong()
                     }
                     // closeEntry() otherwise drains an unknown entry without
                     // counting decompression. Count it without retaining bytes.
-                    remaining -= discardEntryWithLimit(zip, entry.name, limitBytes, remaining, maxScanBytes)
+                    else remaining -= discardEntryWithLimit(zip, entry.name, limitBytes, remaining, maxScanBytes)
                     zip.closeEntry()
                     entry = zip.nextEntry
                 }
+                found?.let { return it }
             }
         }
         throw DataEaterException(

@@ -1,5 +1,20 @@
 # Changelog
 
+## DataEater 0.1.7.5 — Security and database creation fixes
+
+- Fix the delayed crash after selecting PDFs in Create database.
+- Retain Android document read permissions for optimisation ZIP preparation. If a previously selected file has lost access, remove it and choose it again.
+- Replace internal file-permission errors with a recovery message and clean incomplete extraction copies.
+- Tighten database/licence identifiers, bind new unlock codes to encrypted database identity, reject duplicate ZIP/JSON entries, and enforce input limits.
+- Validate cryptographic inputs and strengthen private licence storage. Existing valid legacy licences remain supported.
+
+Database file integrity does not independently authenticate a publisher. Offline licence expiry still depends on the device clock; see docs/SECURITY_AUDIT_2026-10-13.md for the audit and remaining limitations. Matching security fixes are included in the DataEater-builder repository (0.4.1).
+
+Validation: 337 Android unit tests passed, signed release build and lint passed with zero errors. Three vivo phone tests passed: repeated PDF selection/cancellation, denied document access recovery, and optimisation ZIP creation/reimport with encryption, licensing and key backup. Python builder regression suites and staged public source checks also passed.
+
+Install DataEater-0.1.7.5.apk as an update. Version code 18 and the existing release certificate preserve update compatibility. Chats and keys remain in place. SHA256SUMS covers the APK and notices archive.
+
+
 ## 0.1.7.2 — 13 October 2026
 
 Open Settings → Start benchmark, below Create database. Add questions, select

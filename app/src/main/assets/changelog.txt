@@ -1,3 +1,9 @@
+0.1.7.3 — 13 October 2026
+• Strict database/licence identifiers and encrypted-file binding for newly issued codes.
+• Complete ZIP scans, duplicate-field rejection and bounded database/licence parsing.
+• Stronger cryptographic input checks and private licence storage.
+• Valid legacy licences remain supported; publisher identity and offline expiry limitations are documented.
+
 0.1.7.2 — 12 October 2026
 • Start benchmark compares installed models using your questions and selected databases.
 • Watch automatic questions and answers in chat, with optional stars and feedback.

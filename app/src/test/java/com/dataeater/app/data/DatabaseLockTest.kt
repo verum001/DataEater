@@ -140,11 +140,11 @@ class DatabaseLockTest {
     }
 
     @Test
-    fun anUnknownSchemeIsStillTreatedAsLocked() {
+    fun anUnknownSchemeIsRefused() {
         // Not "aes-256-gcm", but encrypted by something. Refusing to open it
         // is the safe answer; we cannot know what it needs.
         val status = DatabaseLock.statusOf(openManifest(encryption = "rot13-from-1970"))
-        assertTrue(status is DatabaseLock.Status.Locked)
+        assertTrue(status is DatabaseLock.Status.Unreadable)
     }
 
     // ------------------------------------------------------------------

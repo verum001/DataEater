@@ -1,6 +1,10 @@
 package com.dataeater.app.builder
 
 import com.dataeater.app.security.DeviceKeys
+import com.dataeater.app.data.DatabaseIdentity
+import com.dataeater.app.data.DatabaseReader
+import com.dataeater.app.data.DatabaseIntegrity
+import com.dataeater.app.data.JsonSafety
 import org.json.JSONObject
 import java.io.File
 import java.security.KeyFactory
@@ -63,13 +67,16 @@ object BuilderCrypto {
         return decode(record.getString("content_key")).also { require(it.size == 32) { "The content key must be 32 bytes." } }
     }
     fun gcmEncrypt(key: ByteArray, nonce: ByteArray, plain: ByteArray): ByteArray = Cipher.getInstance("AES/GCM/NoPadding").run {
+        require(key.size == 32 && nonce.size == 12) { "Invalid AES-256-GCM input lengths." }
         init(Cipher.ENCRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(128, nonce)); doFinal(plain)
     }
     fun encrypt(input: File, output: File, creator: String, contact: String, signingPublic: String,
         existingSecret: JSONObject? = null, replace: Boolean = false): JSONObject {
         require(signingPublic.isNotBlank()) { "Create or import a signing key first." }; publicKey(signingPublic)
         BuilderCore.inspect(input)
-        val entries = BuilderCore.entries(input); val manifest = JSONObject(entries.getValue("manifest.json").toString(Charsets.UTF_8))
+        val entries = BuilderCore.entries(input); val manifestText = DatabaseReader.decodeText(entries.getValue("manifest.json")); DatabaseReader.parseManifest(manifestText); val manifest = JSONObject(manifestText)
+        DatabaseIntegrity.verify(manifestText, "sources.json", entries.getValue("sources.json"))
+        DatabaseIntegrity.verify(manifestText, "chunks.jsonl", entries.getValue("chunks.jsonl"))
         require(manifest.optString("encryption", "none") == "none") { "This database is already locked." }
         val key = if (existingSecret != null && !replace) secretKey(existingSecret) else ByteArray(32).also(random::nextBytes)
         val envelope = JSONObject().put("format", "dataeater-payload").put("version", 1)
@@ -92,12 +99,15 @@ object BuilderCrypto {
     }
     fun licence(database: File, secret: JSONObject, signingKey: JSONObject, request: String, until: String): String {
         BuilderCore.inspect(database)
-        val entries = BuilderCore.entries(database); val manifest = JSONObject(entries.getValue("manifest.json").toString(Charsets.UTF_8))
+        val entries = BuilderCore.entries(database); val manifestText = DatabaseReader.decodeText(entries.getValue("manifest.json")); DatabaseReader.parseManifest(manifestText); val manifest = JSONObject(manifestText)
         require(manifest.optString("encryption") == "aes-256-gcm") { "This database is not locked and needs no access code." }
+        DatabaseIntegrity.verify(manifestText, "payload.enc", entries.getValue("payload.enc"))
         val key = secretKey(secret)
         // Prove that both supplied keys actually belong to this database before issuing a code.
         val payload = DeviceKeys.gcmDecrypt(key, decode(manifest.getString("payload_nonce")), entries.getValue("payload.enc"))
-        require(JSONObject(payload.toString(Charsets.UTF_8)).optString("format") == "dataeater-payload") { "The content key does not belong to this database." }
+        val payloadText = DatabaseReader.decodeText(payload); JsonSafety.check(payloadText)
+        val payloadJson = JSONObject(payloadText)
+        require(payloadJson.opt("format") == "dataeater-payload" && payloadJson.opt("version") == 1 && payloadJson.opt("sources") is String && payloadJson.opt("chunks") is String) { "The content key does not belong to this database." }
         val (private, public) = validateKey(signingKey)
         require(public.encoded.contentEquals(publicKey(manifest.getString("creator_public_key")).encoded)) { "This signing key does not match the database's public key." }
         val device = publicKey(request)
@@ -108,7 +118,7 @@ object BuilderCrypto {
         val wrap = JSONObject().put("format", "dataeater-wrap").put("version", 1).put("ephemeral_public_key", b64(ephemeral.public.encoded))
             .put("nonce", b64(nonce)).put("wrapped_key", b64(gcmEncrypt(wrapping, nonce, key)))
         val licence = JSONObject().put("format", "dataeater-licence").put("version", 1).put("database_id", manifest.getString("database_id"))
-            .put("expiry", expiry(until) ?: JSONObject.NULL).put("wrap", wrap).put("signed_by", b64(public.encoded))
+            .put("database_fingerprint", DatabaseIdentity.fingerprint(manifest)).put("expiry", expiry(until) ?: JSONObject.NULL).put("wrap", wrap).put("signed_by", b64(public.encoded))
         val signature = Signature.getInstance("SHA256withECDSA").run { initSign(private); update(DeviceKeys.signingBytes(licence)); sign() }
         licence.put("signature", b64(signature))
         DeviceKeys.verifySignatureBytes(licence, b64(public.encoded))

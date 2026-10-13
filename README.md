@@ -26,11 +26,11 @@ document excerpts requires a separate opt-in.
 5. Check important answers against their cited source. Small models can make mistakes.
 
 A compatible 64-bit ARM64 or x86-64 Android 8.0+ device is required. Encrypted
-access-code unlocking requires Android 13+. Storage and memory requirements
+access-code unlocking requires Android 12+. Storage and memory requirements
 vary by model. The interface is currently English. No model or real manual is
 bundled. See [supported devices](docs/supported-devices.md).
 
-Current release: [0.1.7.2](https://github.com/verum001/DataEater/releases/tag/v0.1.7.2).
+Current release: [0.1.7.5](https://github.com/verum001/DataEater/releases/tag/v0.1.7.5).
 
 ## Features
 
@@ -115,3 +115,5 @@ Versioned manual collections are available in [DataEater-Databases](https://gith
 Settings → Download databases lists the latest published versions in DataEater-Databases. Settings → Create database offers file selection, optional encryption and a manual LLM optimisation ZIP. Private database keys and licence generation are available in the secret key vault below the creation controls. See [database downloads](docs/DATABASE_DOWNLOADS.md) and [Android builder](docs/ANDROID_BUILDER.md).
 
 Compare installed models with Settings → Start benchmark. Use your own questions, selected databases and optional star ratings; save or share reports with phone details and timings. See [benchmark guide](docs/BENCHMARKS.md).
+
+Security and database creation fixes are included in 0.1.7.5. See the [security audit](docs/SECURITY_AUDIT_2026-10-13.md) for confirmed fixes and offline limitations. If an older document selection has lost access, remove it and select it again through Choose files before preparing an optimisation ZIP.

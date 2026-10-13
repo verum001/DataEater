@@ -1,3 +1,5 @@
+For the current implementation review and compatibility details, see [13 October 2026 security audit](SECURITY_AUDIT_2026-10-13.md).
+
 # Security
 
 ## The honest limitation, stated first
@@ -71,8 +73,7 @@ Two things are true and are stated rather than hidden:
   who is allowed to read the database can also copy the code to someone else who can access that same device’s private key. Another phone of the same model has a different key and cannot use the licence. Device binding is not protection against extraction by an authorized reader.
 * **Expiry can be bypassed by patching the app.** The date is inside the signed payload, so
   it cannot be edited without breaking the signature — but the *check* happens in code on
-  the customer's device, and code on their device can be changed. Only the signature
-  itself is unforgeable.
+  the customer's device, and code on their device can be changed. Clock rollback can also bypass the device-date check. See the current audit for offline-time limitations.
 
 ---
 
@@ -129,7 +130,7 @@ file, the customer's device, or any public documentation.
 | Attacker patches the APK to skip the licence check | signatures cover every field including expiry, so a licence cannot be edited and re-issued. A patched app can *ignore* a check, but cannot forge one |
 | Attacker replays a stolen Unlock Code on another phone | the content key is wrapped to a device public key, so the shared secret differs and the AES check fails |
 | Attacker extends an expiry date | the expiry is covered by the signature, so editing it breaks verification |
-| Attacker issues their own licence | it will not verify against the creator's public key |
+| Attacker issues their own licence | it fails against an independently verified publisher key. A key supplied only in a replaceable manifest is not a publisher trust anchor |
 | Attacker edits the database text | required knowledge files are checked against manifest hashes before use; an attacker replacing both text and hashes can still produce a matching plain database because manifests are unsigned |
 | Creator's private key leaks | outside our control. Documented as a creator responsibility; keep an offline backup |
 | Malicious `.dataeater` package | no code is ever executed; it is parsed as data only |
@@ -210,7 +211,7 @@ codes were invented for this project and released under CC0-1.0, so it can be sh
 
 ## Privacy guarantees
 
-* **No telemetry.** Nothing is measured about the user.
+* **No automatic telemetry.** User-initiated benchmarks save phone details and answers locally; selected exports/shares disclose those reports.
 * **On-device use needs no account or payment.** Optional OpenRouter requires your API key and may use paid credits.
 * **Explicit model downloads.** Android DownloadManager requests pinned public model URLs;
   no question, document, licence, device identifier or account token is attached.

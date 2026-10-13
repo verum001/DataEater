@@ -132,7 +132,8 @@ object LicenceFiles {
             .filter { it.isFile && it.name.endsWith(EXTENSION, ignoreCase = true) }
             .map { file ->
                 val text = try {
-                    file.readText()
+                    require(file.canonicalFile.parentFile == folder().canonicalFile)
+                    readFileCapped(file)
                 } catch (problem: Exception) {
                     null
                 }
@@ -181,9 +182,19 @@ object LicenceFiles {
     fun read(name: String): String? {
         val file = resolve(name) ?: return null
         return try {
-            file.readText()
+            readFileCapped(file)
         } catch (problem: Exception) {
             null
+        }
+    }
+
+    internal fun readFileCapped(file: File): String {
+        val limit = com.dataeater.app.security.UnlockCode.MAX_CODE_BYTES
+        require(file.length() <= limit) { "This licence file is too large." }
+        return file.inputStream().use { stream ->
+            val result = java.io.ByteArrayOutputStream(); val buffer = ByteArray(4096)
+            while (true) { val n = stream.read(buffer); if (n < 0) break; require(result.size() + n <= limit) { "This licence file is too large." }; result.write(buffer, 0, n) }
+            Charsets.UTF_8.newDecoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPORT).decode(java.nio.ByteBuffer.wrap(result.toByteArray())).toString()
         }
     }
 
@@ -200,7 +211,8 @@ object LicenceFiles {
         if (!safe.endsWith(EXTENSION, ignoreCase = true)) return null
         if (!safe.matches(Regex("[A-Za-z0-9._-]+\\.lic", RegexOption.IGNORE_CASE))) return null
         if (safe.contains("..")) return null
-        return File(folder(), safe).takeIf { it.isFile }
+        val directory = folder()
+        return File(directory, safe).takeIf { it.isFile && it.canonicalFile.parentFile == directory.canonicalFile }
     }
 
     /** The place to show the user, as a path they can recognise. */

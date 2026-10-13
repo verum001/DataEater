@@ -6,6 +6,7 @@ import java.security.MessageDigest
 /** Detects damage relative to the manifest; this does not authenticate a publisher. */
 object DatabaseIntegrity {
     fun verify(manifestText: String, entryName: String, bytes: ByteArray) {
+        JsonSafety.check(manifestText)
         val expected = JSONObject(manifestText)
             .optJSONObject("files")
             ?.optJSONObject(entryName)

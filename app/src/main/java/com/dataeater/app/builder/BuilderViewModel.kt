@@ -92,13 +92,23 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
     fun secret(id: String?) { if (!state.busy) state = state.copy(secretId = id) }
     fun review(id: String) { if (!state.busy) state = state.copy(reviewId = id) }
     fun removeInput(uri: Uri) { if (!state.busy) state = state.copy(inputs = state.inputs.filterNot { it.uri == uri }) }
-    fun documents(uris: List<Uri>) = submit("Reading documents…") { _, _ ->
-        val selected = uris.map(files::input); require(selected.all { files.supported(it.name) }) { "Choose PDF, TXT or Markdown documents." }
-        require(state.inputs.size + selected.size <= 1000) { "Select a smaller document collection." }
-        main.post { state = state.copy(inputs = (state.inputs + selected).distinctBy { it.uri }) }; null
+    fun documents(uris: List<Uri>) {
+        if (state.busy) return
+        uris.forEach(files::retainReadAccess)
+        submit("Reading documents…") { _, _ ->
+            val selected = uris.map(files::input)
+            require(selected.all { files.supported(it.name) }) { "Choose PDF, TXT or Markdown documents." }
+            require(state.inputs.size + selected.size <= 1000) { "Select a smaller document collection." }
+            main.post { state = state.copy(inputs = (state.inputs + selected).distinctBy { it.uri }) }; null
+        }
     }
-    fun documentFolder(uri: Uri) = submit("Reading folder…") { _, _ ->
-        val selected = files.folder(uri); main.post { state = state.copy(inputs = (state.inputs + selected).distinctBy { it.uri }) }; null
+    fun documentFolder(uri: Uri) {
+        if (state.busy) return
+        files.retainReadAccess(uri)
+        submit("Reading folder…") { _, _ ->
+            val selected = files.folder(uri)
+            main.post { state = state.copy(inputs = (state.inputs + selected).distinctBy { it.uri }) }; null
+        }
     }
     fun database(uri: Uri) = submit("Reading file…") { _, _ ->
         val selected = files.input(uri); main.post { state = state.copy(database = selected) }; null
@@ -405,16 +415,9 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
     private fun submit(label: String, block: (File, File) -> Result?) {
         if (state.busy) return
         sequence++; val own = sequence; val token = AtomicBoolean(false); cancelled = token
-        try {
-            BuilderService.cancelOperation = ::cancel
-            context.startForegroundService(android.content.Intent(context, BuilderService::class.java))
-        } catch (_: Exception) {
-            BuilderService.cancelOperation = null
-            state = state.copy(status = "Keep the app open and try again to start background preparation.")
-            return
-        }
         state = state.copy(busy = true, status = label)
-        executor.execute {
+        // A short operation must not stop a service whose foreground start is still pending.
+        val work = Runnable {
             Thread.interrupted(); running.set(Thread.currentThread())
             val temp = File(context.cacheDir, "builder-${UUID.randomUUID()}").apply { mkdirs() }
             val output = File(folder, UUID.randomUUID().toString()).apply { mkdirs() }
@@ -434,7 +437,17 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
                 main.post { if (sequence == own) state = state.copy(busy = false, status = message, result = result.takeIf { success } ?: state.result, keys = keys, reviews = reviews) }
             }
         }
+        BuilderService.cancelOperation = ::cancel
+        BuilderService.onReady = { executor.execute(work) }
+        try {
+            context.startForegroundService(android.content.Intent(context, BuilderService::class.java))
+        } catch (_: Exception) {
+            BuilderService.onReady = null
+            BuilderService.cancelOperation = null
+            state = state.copy(busy = false, status = "Keep the app open and try again to start background preparation.")
+        }
     }
+
     fun cancel() { cancelled.set(true); running.get()?.interrupt(); if (state.busy) state = state.copy(status = "Cancelling…") }
     fun clearForm() { if (!state.busy) state = State(keys = state.keys, reviews = state.reviews) }
     companion object {

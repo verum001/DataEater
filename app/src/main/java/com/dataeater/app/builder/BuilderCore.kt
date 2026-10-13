@@ -133,7 +133,9 @@ object BuilderCore {
             for ((name, bytes) in entries) { checkpoint(); zip.putNextEntry(ZipEntry(name)); zip.write(bytes); zip.closeEntry() }
         }
     }
-    fun entries(file: File): Map<String, ByteArray> = ZipFile(file).use { zip ->
+    fun entries(file: File): Map<String, ByteArray> {
+        require(file.length() <= DatabaseLimits.MAX_PACKAGE_BYTES) { "This archive is too large to process safely." }
+        return ZipFile(file).use { zip ->
         require(zip.size() <= DatabaseLimits.MAX_ENTRIES) { "This archive has too many entries." }
         val names = mutableSetOf<String>(); val result = linkedMapOf<String, ByteArray>(); var total = 0L
         val items = zip.entries()
@@ -147,11 +149,12 @@ object BuilderCore {
             }
         }
         result
+        }
     }
     fun inspect(file: File): String {
         val all = entries(file)
         require(all.keys.firstOrNull() == "manifest.json") { "The manifest must be first in the database." }
-        val manifestText = all["manifest.json"]?.toString(Charsets.UTF_8) ?: error("Missing manifest")
+        val manifestText = all["manifest.json"]?.let(DatabaseReader::decodeText) ?: error("Missing manifest")
         val manifest = JSONObject(manifestText)
         DatabaseReader.parseManifest(manifestText)
         val files = manifest.getJSONObject("files")
@@ -162,14 +165,15 @@ object BuilderCore {
             DatabaseIntegrity.verify(manifestText, "payload.enc", all["payload.enc"] ?: error("Missing encrypted content"))
             return "Fingerprints verified. Locked database: ${manifest.getString("name")}. ${counts.getInt("chunks")} passages. Text is encrypted."
         }
-        val sourceText = all["sources.json"]?.toString(Charsets.UTF_8) ?: error("Missing sources")
-        val chunkText = all["chunks.jsonl"]?.toString(Charsets.UTF_8) ?: error("Missing passages")
+        val sourceText = all["sources.json"]?.let(DatabaseReader::decodeText) ?: error("Missing sources")
+        val chunkText = all["chunks.jsonl"]?.let(DatabaseReader::decodeText) ?: error("Missing passages")
         DatabaseIntegrity.verify(manifestText, "sources.json", all.getValue("sources.json"))
         DatabaseIntegrity.verify(manifestText, "chunks.jsonl", all.getValue("chunks.jsonl"))
         val sources = DatabaseReader.parseSources(sourceText); val chunks = DatabaseReader.parseChunks(chunkText)
         require(sources.size == counts.getInt("documents") && chunks.size == counts.getInt("chunks")) { "Database counts do not match its contents." }
         require(sources.map { it.id }.toSet().size == sources.size && chunks.map { it.id }.toSet().size == chunks.size) { "Duplicate document or passage IDs." }
-        require(chunks.all { c -> sources.any { it.id == c.sourceId } }) { "A passage has no matching source." }
+        val sourceIds = sources.map { it.id }.toSet()
+        require(chunks.all { c -> c.sourceId in sourceIds }) { "A passage has no matching source." }
         return "Fingerprints and counts verified. ${sources.size} documents, ${chunks.size} passages.\n" +
             "Long passages: ${chunks.count { it.text.length > 1200 }}. Repeated passages: ${chunks.size - chunks.map { it.text }.toSet().size}.\n" +
             "This checks structure, not technical accuracy.\n" + sources.joinToString("\n") { it.title } +

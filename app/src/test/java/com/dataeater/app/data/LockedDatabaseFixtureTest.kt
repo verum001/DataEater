@@ -55,7 +55,7 @@ class LockedDatabaseFixtureTest {
           "payload_nonce": "bBS/eSPg645lMzEk",
           "creator": "Test Creator Ltd",
           "contact": "licences@test-creator.example",
-          "creator_public_key": "MCowBQYDK2VwAyEABT10elTfT5weCVJPjP4gFWXuD+qO6mnMUJkTrWrCk8A="
+          "creator_public_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUadYCDOJjqGxg8vXNQpAmQeMbvHB4Y6XDNdoMDXyXn0BEFInErC1p8/wgWhUhphKlOaDHtrEbnNg+p2DSnqBoQ=="
         }
     """.trimIndent()
 
