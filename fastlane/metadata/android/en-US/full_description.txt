@@ -1,0 +1,20 @@
+DataEater lets you ask AI questions about documents and receive answers with document, section and page references. Local inference, document search and database creation run on your Android device.
+
+<b>Features</b>
+<ul>
+<li>Chat with compatible local AI models.</li>
+<li>Search one or several DataEater knowledge databases.</li>
+<li>Choose strict, balanced or flexible document grounding.</li>
+<li>Create databases from PDF, text and Markdown files on the phone.</li>
+<li>Open encrypted databases with signed, device-bound access codes.</li>
+<li>Compare installed models with local benchmark reports.</li>
+<li>Save conversations and copy answers and citations.</li>
+</ul>
+
+No model or manual is bundled. You can add compatible model files yourself or explicitly download a model from Hugging Face. Downloaded models have their own publishers and licences and are not distributed or reviewed by F-Droid. After a model is installed, local chat works offline.
+
+Optional OpenRouter support requires your own API key. Online mode sends the messages you enter to OpenRouter and its selected model provider. Database excerpts are shared only after a separate opt-in. The app contains no advertising, telemetry or analytics.
+
+Model and database downloads require internet access. DataEater requests broad storage access so it can read large model and database files in the visible DataEater folder. Private chats, API keys and database creator keys are excluded from Android backups.
+
+Android 8.0 or later and a 64-bit ARM64 or x86-64 device are required. Encrypted access-code unlocking requires Android 12 or later. Memory and storage requirements depend on the selected model.

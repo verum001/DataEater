@@ -4,12 +4,14 @@
 
 Use the versions declared in `gradle/libs.versions.toml` and the Gradle wrapper.
 The current build uses Gradle 9.6.0, Android Gradle Plugin 9.4.1, Kotlin 2.4.20,
-LiteRT-LM 0.17.1 and Android API 37. The daemon toolchain is JDK 25. Install
+LiteRT-LM 0.17.1 and Android API 37. Use a full JDK 21 or newer; a JRE without
+`javac` is insufficient. The release checks are verified with JDK 25. Install
 Android SDK platform 37 and build-tools 36.0.0; configure `ANDROID_HOME`, or an
 ignored `local.properties` file containing `sdk.dir=/path/to/Android/Sdk`.
 Dependencies resolve from Google Maven, Maven Central and the Gradle plugin portal.
 Initial setup needs internet access; `--offline` works only after dependencies
-and toolchains are cached. `JAVA_HOME` can select an installed JDK.
+are cached. `JAVA_HOME` can select an installed JDK. The build does not download
+a JDK or use an external toolchain resolver.
 
 ## Commands
 

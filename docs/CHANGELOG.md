@@ -1,5 +1,18 @@
 # Changelog
 
+## DataEater 0.1.7.6 — F-Droid preparation (unreleased)
+
+- Adds the app description, artwork, five current-interface screenshots and
+  versioned release notes used by F-Droid.
+- Explains that optional Hugging Face model downloads are separate from the app
+  and are not distributed or reviewed by F-Droid.
+- Removes the automatic JDK downloader; builds use an installed full JDK.
+
+Android version code 20 follows the earlier GitHub APK (0.1.7.5, code 18) and
+the reserved preparation code 19. GitHub remains the upstream repository.
+The existing 0.1.7.5 release and tag are unchanged. F-Droid review and signing
+verification are pending; this is not a published release.
+
 ## DataEater 0.1.7.5 — Security and database creation fixes
 
 - Fix the delayed crash after selecting PDFs in Create database.

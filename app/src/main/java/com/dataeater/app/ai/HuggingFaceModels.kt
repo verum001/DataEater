@@ -129,7 +129,7 @@ object HuggingFaceModels {
         val connection = URL(url).openConnection() as HttpURLConnection
         connection.connectTimeout = 8000; connection.readTimeout = 10000
         connection.instanceFollowRedirects = false
-        connection.setRequestProperty("User-Agent", "DataEater/0.1.7.1")
+        connection.setRequestProperty("User-Agent", "DataEater/0.1.7.6")
         try {
             check(connection.responseCode == 200) { "Hugging Face request failed" }
             return connection.inputStream.use { stream ->

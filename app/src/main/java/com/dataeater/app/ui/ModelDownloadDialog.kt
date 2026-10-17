@@ -60,6 +60,10 @@ fun ModelDownloadDialog(state: ModelDownloadUiState, onDismiss: () -> Unit) {
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Download once, use offline. Models from Hugging Face.", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    "Model files are separate downloads. They are not distributed or reviewed by F-Droid; check the publisher and licence shown for each model before downloading.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Recommended", Modifier.weight(1f), color = if (!showAll) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)

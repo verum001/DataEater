@@ -1,3 +1,9 @@
+0.1.7.6 — F-Droid preparation (unreleased)
+• Adds the F-Droid description, artwork, screenshots and release notes.
+• Explains that optional model downloads are separate from F-Droid review.
+• Uses an installed JDK for source builds. Android version code is 20.
+• Includes the PDF selection and optimisation ZIP permission fixes.
+
 0.1.7.3 — 13 October 2026
 • Strict database/licence identifiers and encrypted-file binding for newly issued codes.
 • Complete ZIP scans, duplicate-field rejection and bounded database/licence parsing.

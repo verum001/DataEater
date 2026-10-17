@@ -1,0 +1,1 @@
+Adds the F-Droid app listing and explains that optional Hugging Face model downloads are separate files not distributed or reviewed by F-Droid. Local chat, document search and database creation remain available without an online account. No models or manuals are bundled.

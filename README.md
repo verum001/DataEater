@@ -32,6 +32,12 @@ bundled. See [supported devices](docs/supported-devices.md).
 
 Current release: [0.1.7.5](https://github.com/verum001/DataEater/releases/tag/v0.1.7.5).
 
+Development candidate: 0.1.7.6 (Android version code 20), prepared for F-Droid
+review. GitHub is the upstream source and issue tracker. The published 0.1.7.5
+release and its tag remain unchanged at version code 18. Code 19 was reserved
+by an earlier preparation revision. F-Droid publication and signing verification
+are pending; no 0.1.7.6 release APK is published yet.
+
 ## Features
 
 - Local AI and optional OpenRouter online AI, selected explicitly.
@@ -67,7 +73,7 @@ The complete original Android implementation is in `app/src/main`, including
 retrieval, model prompts, crypto, online requests and the native Android builder.
 Unit tests are in `app/src/test`; synthetic hardware checks are in `app/src/androidTest`.
 
-Install the Android SDK with API 37, build-tools 36.0.0 and a JDK 25 environment.
+Install the Android SDK with API 37, build-tools 36.0.0 and a full JDK 21 or newer.
 Set `ANDROID_HOME` to your SDK or configure an ignored `local.properties` file.
 Then run:
 

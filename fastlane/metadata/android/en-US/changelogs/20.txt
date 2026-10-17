@@ -1,0 +1,1 @@
+Adds the F-Droid listing and model-download disclosure. Builds use an installed full JDK. This preparation follows the unchanged 0.1.7.5 release; GitHub remains the upstream source. Publication and signing verification are pending.

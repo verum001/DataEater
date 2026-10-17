@@ -14,8 +14,8 @@ android {
         applicationId = "com.dataeater.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 18
-        versionName = "0.1.7.5"
+        versionCode = 20
+        versionName = "0.1.7.6"
         // LiteRT-LM ships native inference only for these 64-bit ABIs.
         // Avoid an installable 32-bit APK that would fail when loading AI.
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
