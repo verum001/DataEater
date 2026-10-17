@@ -30,13 +30,13 @@ access-code unlocking requires Android 12+. Storage and memory requirements
 vary by model. The interface is currently English. No model or real manual is
 bundled. See [supported devices](docs/supported-devices.md).
 
-Current release: [0.1.7.5](https://github.com/verum001/DataEater/releases/tag/v0.1.7.5).
+Current release: [0.1.7.6](https://github.com/verum001/DataEater/releases/tag/v0.1.7.6).
 
-Development candidate: 0.1.7.6 (Android version code 20), prepared for F-Droid
-review. GitHub is the upstream source and issue tracker. The published 0.1.7.5
-release and its tag remain unchanged at version code 18. Code 19 was reserved
-by an earlier preparation revision. F-Droid publication and signing verification
-are pending; no 0.1.7.6 release APK is published yet.
+Version 0.1.7.6 uses Android version code 20 and the existing release certificate.
+GitHub is the upstream source and issue tracker. The earlier 0.1.7.5 release and
+tag remain unchanged at version code 18; code 19 was reserved by an earlier
+preparation revision. Official F-Droid build-server verification and inclusion
+remain pending.
 
 ## Features
 

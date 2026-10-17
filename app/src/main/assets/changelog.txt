@@ -1,4 +1,4 @@
-0.1.7.6 — F-Droid preparation (unreleased)
+0.1.7.6 — F-Droid build preparation
 • Adds the F-Droid description, artwork, screenshots and release notes.
 • Explains that optional model downloads are separate from F-Droid review.
 • Uses an installed JDK for source builds. Android version code is 20.

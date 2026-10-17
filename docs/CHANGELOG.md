@@ -1,6 +1,6 @@
 # Changelog
 
-## DataEater 0.1.7.6 — F-Droid preparation (unreleased)
+## DataEater 0.1.7.6 — F-Droid build preparation
 
 - Adds the app description, artwork, five current-interface screenshots and
   versioned release notes used by F-Droid.
@@ -10,8 +10,9 @@
 
 Android version code 20 follows the earlier GitHub APK (0.1.7.5, code 18) and
 the reserved preparation code 19. GitHub remains the upstream repository.
-The existing 0.1.7.5 release and tag are unchanged. F-Droid review and signing
-verification are pending; this is not a published release.
+The existing 0.1.7.5 release and tag are unchanged. This update uses the existing
+release certificate. Official F-Droid build-server verification and inclusion
+remain pending.
 
 ## DataEater 0.1.7.5 — Security and database creation fixes
 
