@@ -30,7 +30,7 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
     }
     data class Review(val id: String, val name: String)
     data class Result(val text: String, val file: File? = null, val review: Review? = null,
-        val signing: PublisherVault.Item? = null, val secret: PublisherVault.Item? = null)
+        val signing: PublisherVault.Item? = null, val secret: PublisherVault.Item? = null, val quality: File? = null)
     data class State(val task: Task = Task.BUILD, val inputs: List<BuilderFiles.Input> = emptyList(), val database: BuilderFiles.Input? = null,
         val fields: Map<String, String> = mapOf("name" to "", "language" to "en", "license" to "unknown", "target" to "700", "batch" to "30000", "expiry" to "never", "creator" to "", "contact" to "", "keyName" to "Creator key"),
         val signingId: String? = null, val secretId: String? = null, val reviewId: String? = null, val keys: List<PublisherVault.Item> = emptyList(),
@@ -170,19 +170,31 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
                         val reviewFolder = File(output, "review"); val prompt = context.assets.open("builder/LLM_PROMPT.txt").bufferedReader().use { it.readText() }
                         BuilderReview.export(documents, reviewFolder, batch, prompt)
                         val title = snapshot.fields["name"].orEmpty().ifBlank { documents.first().title }; File(output, "review-name.txt").writeText(title)
-                        Result("Review ready. Check each batch before building. Nothing was uploaded.", review = Review(output.name, title))
+                        Result("Review ready. Check each batch before building. Nothing was uploaded.", review = Review(output.name, title), quality = File(reviewFolder, "quality_report.json"))
                     } else {
                         val options = options(snapshot); val file = File(output, BuilderCore.id(options.name) + ".dataeater")
-                        Result(BuilderCore.writeDatabase(documents, options, file), file)
+                        Result(BuilderCore.writeDatabase(documents, options, file), file, quality = qualityFile(documents, options, file, output))
                     }
                 }
                 Task.REVIEWED -> {
                     val review = reviewFolder(snapshot.reviewId ?: error("Choose a review workspace."))
                     val imported = BuilderReview.read(review); val options = options(snapshot); val file = File(output, BuilderCore.id(options.name) + ".dataeater")
                     val report = BuilderCore.writeDatabase(imported.documents, options, file)
-                    Result(report + "\nNumeric text changed on ${imported.numericChanges} pages. Check those corrections against the original PDF.", file)
+                    Result(report + "\nNumeric text changed on ${imported.numericChanges} pages. Check those corrections against the original PDF.", file, quality = qualityFile(imported.documents, options, file, output))
                 }
-                Task.INSPECT -> Result(BuilderCore.inspect(databaseFile()))
+                Task.INSPECT -> {
+                    val file = databaseFile(); val text = BuilderCore.inspect(file)
+                    val entries = BuilderCore.entries(file)
+                    val sources = entries["sources.json"]?.toString(Charsets.UTF_8)?.let { org.json.JSONArray(it) }
+                    val reports = org.json.JSONArray()
+                    if (sources != null) for (i in 0 until sources.length()) sources.getJSONObject(i).optJSONObject("preparation_quality")?.let { reports.put(it) }
+                    if (reports.length() == 0) Result(text + "\nNo readable preparation report. Older files may not have one; private reports are encrypted.")
+                    else {
+                        val report = JSONObject().put("format", "dataeater-preparation-quality").put("version", 1).put("documents", reports).put("database_sha256", BuilderReview.fingerprint(file))
+                        val saved = File(output, "quality.json").apply { writeText(report.toString(2) + "\n") }
+                        Result(text + "\n" + BuilderQuality.summary(report), quality = saved)
+                    }
+                }
                 Task.KEY -> {
                     val record = BuilderCrypto.createKey(); check()
                     val item = vault.save(snapshot.fields["keyName"].orEmpty().ifBlank { "Creator key" }, "signing", record)
@@ -262,7 +274,7 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
                 BuilderReview.zip(review, zip)
                 val saved = saveVisible(zip, directory)
                 main.post { state = state.copy(reviewId = output.name) }
-                Result("Optimisation ZIP saved: ${saved.name}. It contains unencrypted originals, parsed text and the prompt. Send it to your chosen LLM, check its changes, then import the returned ZIP and continue.", saved, Review(output.name, title))
+                Result("Optimisation ZIP saved: ${saved.name}. It contains unencrypted originals, parsed text, a quality report and the prompt. Send it to your chosen LLM, check its changes, then import the returned ZIP and continue.", saved, Review(output.name, title), quality = File(review, "quality_report.json"))
             } else {
                 val options = options(snapshot)
                 val plain = File(temp, "plain.dataeater")
@@ -280,6 +292,7 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
                     // Preserve keys before publishing any encrypted database.
                     secretItem = vault.save(target.name, "content", secret)
                 } else plain.copyTo(artifact)
+                val quality = try { qualityFile(docs, options, artifact, output) } catch (error: Throwable) { secretItem?.let(vault::remove); throw error }
                 check()
                 try {
                     saveVisible(artifact, directory, target)
@@ -287,9 +300,13 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
                     secretItem?.let(vault::remove)
                     throw error
                 }
-                Result("Saved ${target.name} in /sdcard/DataEater.\n$report" + if (encrypted) "\nPrivate database key stored in the secret key vault." else "", target, signing = signingItem, secret = secretItem)
+                Result("Saved ${target.name} in /sdcard/DataEater.\n$report" + if (encrypted) "\nPrivate database key stored in the secret key vault." else "", target, signing = signingItem, secret = secretItem, quality = quality)
             }
         }
+    }
+    private fun qualityFile(docs: List<BuilderCore.Document>, options: BuilderCore.Options, artifact: File, output: File): File {
+        val report = BuilderQuality.report(docs, options).put("database_sha256", BuilderReview.fingerprint(artifact))
+        return File(output, artifact.name + ".quality.json").apply { writeText(report.toString(2) + "\n") }
     }
     private fun unusedVisible(directory: File, name: String): File {
         var target = File(directory, name); var number = 2

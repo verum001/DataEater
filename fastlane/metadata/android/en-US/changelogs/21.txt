@@ -1,0 +1,1 @@
+Offline database preparation reports list omitted pages and PDF layout-review needs. Reviewed builds flag changed restrictions, units, identifiers and numbered steps. Save reports in the app; optimisation ZIPs include a report. AI remains optional. Reports are encrypted with private database text. Automatic flags do not certify technical accuracy.

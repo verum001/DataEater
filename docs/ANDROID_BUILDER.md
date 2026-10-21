@@ -32,3 +32,30 @@ The vault list below Create shows each private database name. Tap a name to open
 **Backup** saves a private JSON bundle containing both the content key and matching signing key. Keep it in secure storage, separate from shared databases and optimisation ZIPs. **Restore key backup** verifies that the keys match an available private database. Uninstalling DataEater removes keys stored only inside the app. **Remove key** removes the stored content key and leaves the database file in place. Without a backup, new licences cannot be issued for that database.
 
 See [encryption design](ENCRYPTION_DESIGN.md) for compatibility and verification details. Formats remain compatible with existing format-v1 files and portable Linux builder keys.
+
+
+Preparation quality report (0.1.7.7 Android / 0.5.0 Linux)
+------------------------------------------------------
+Every new database embeds a source-linked preparation report. It lists original
+page numbers, included/omitted text and available character/byte counts, sparse
+pages, oversized passages and PDF pages whose reading order needs manual review.
+PDF columns, table associations and component ownership are NOT automatically
+verified. Older review exports may have unknown omitted-page sizes.
+
+Reviewed builds also list changed page IDs and heuristic flags for restrictions,
+numbers, units, part identifiers and numbered steps. These hints do not certify
+technical accuracy, and legitimate formatting edits remain allowed. Restriction
+hints cover English/Russian; all other changed text still needs source review.
+No AI or internet is needed. Optional manual LLM review remains unchanged.
+
+In Android, use Save quality report after creation. On desktop, use Inspect
+database to read the complete report in the results pane; CLI users can use
+inspect FILE.dataeater. Optimisation/review packages include quality_report.json;
+that advisory copy is regenerated from validated originals and edits at build,
+not trusted as proof supplied by the reviewer. Preserve every original page marker.
+
+The embedded report is part of fingerprinted sources.json and is encrypted with
+private database text. An explicitly exported report is unencrypted: keep it
+private if source fingerprints or page counts are sensitive. Reports do not
+contain document text or secret keys. Private-database inspection without a key
+cannot display its encrypted report; retain the creator's saved report if needed.

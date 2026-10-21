@@ -30,9 +30,9 @@ access-code unlocking requires Android 12+. Storage and memory requirements
 vary by model. The interface is currently English. No model or real manual is
 bundled. See [supported devices](docs/supported-devices.md).
 
-Current release: [0.1.7.6](https://github.com/verum001/DataEater/releases/tag/v0.1.7.6).
+Current release: [0.1.7.7](https://github.com/verum001/DataEater/releases/tag/v0.1.7.7).
 
-Version 0.1.7.6 uses Android version code 20 and the existing release certificate.
+Version 0.1.7.7 uses Android version code 21 and the existing release certificate.
 GitHub is the upstream source and issue tracker. The earlier 0.1.7.5 release and
 tag remain unchanged at version code 18; code 19 was reserved by an earlier
 preparation revision. Official F-Droid build-server verification and inclusion
@@ -47,7 +47,7 @@ remain pending.
 - Local model benchmarks with question lists, database selection, ratings and exportable comparisons.
 - Saved conversations, separate per-session choices, text copy and confirmed deletion.
 - Database downloads with expandable descriptions, checksums and versioned files.
-- Simple database creation and manual LLM optimisation on Android.
+- Simple database creation, offline preparation-quality reports and manual LLM optimisation on Android.
 - Encrypted databases and signed, device-bound creator-issued access codes.
 - Light/dark themes, text sizes and adaptable layouts.
 

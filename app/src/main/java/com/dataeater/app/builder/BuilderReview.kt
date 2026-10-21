@@ -60,9 +60,11 @@ object BuilderReview {
             }
             items.put(JSONObject().put("id", "s${index + 1}").put("title", document.title).put("filename", document.filename)
                 .put("source_sha256", document.fingerprint).put("total_pdf_pages", document.totalPages).put("omitted_minimal_text_pages", document.omitted)
-                .put("page_contexts", contexts).put("parts", parts))
+                .put("page_contexts", contexts).put("parts", parts)
+                .put("page_metrics", JSONArray(document.pageMetrics.map { JSONObject().put("page", it.page).put("characters", it.characters).put("utf8_bytes", it.bytes) })))
         }
         File(folder, "review.json").writeText(JSONObject().put("format", "dataeater-review").put("version", 1).put("documents", items).toString(2) + "\n")
+        File(folder, "quality_report.json").writeText(BuilderQuality.report(documents, BuilderCore.Options("Review")).toString(2) + "\n")
         File(folder, "LLM_PROMPT.txt").writeText(prompt)
         File(folder, "README.md").writeText("# Review extracted text\n\nKeep original/ and review.json unchanged. Give LLM_PROMPT.txt and one original batch to a reviewer. Save complete checked text in the matching reviewed/ file, and uncertainties in notes/. Preserve all page markers. Verify technical corrections against the PDF. Build using Build reviewed text in DataEater, or dataeater-builder build-reviewed THIS_FOLDER -o result.dataeater on Linux. No upload or OCR is performed.\n")
     }
@@ -85,7 +87,7 @@ object BuilderReview {
                 val original = safe(File(folder, "sources"), originalName)
                 require(original.isFile && fingerprint(original) == source.getString("source_sha256")) { "An original source file was changed or is missing." }
             }
-            val parts = source.getJSONArray("parts"); val pages = mutableListOf<BuilderCore.Page>()
+            val parts = source.getJSONArray("parts"); val pages = mutableListOf<BuilderCore.Page>(); val edits = mutableListOf<BuilderQuality.Change>()
             require(parts.length() in 1..10000) { "Invalid review batch count." }
             for (partIndex in 0 until parts.length()) {
                 BuilderCore.checkpoint(); val part = parts.getJSONObject(partIndex); val name = part.getString("filename")
@@ -99,6 +101,7 @@ object BuilderReview {
                 val expected = part.getJSONArray("pages").let { list -> (0 until list.length()).map { list.getInt(it) } }
                 require(original.map { it.number } == expected && reviewed.map { it.number } == expected) { "Missing, added or changed page marker in $name" }
                 for ((old, new) in original.zip(reviewed)) {
+                    edits.add(BuilderQuality.Change(new.number, BuilderQuality.changes(old.text, new.text)))
                     require(old.text.isEmpty() || new.text.isNotEmpty()) { "A reviewed page is empty in $name" }
                     if (numbers.findAll(old.text).map { it.value }.toList() != numbers.findAll(new.text).map { it.value }.toList()) changes++
                 }
@@ -120,8 +123,17 @@ object BuilderReview {
                 }
                 page.copy(paths = mapping, context = default)
             }
+            val metricsJson = source.optJSONArray("page_metrics") ?: JSONArray()
+            require(metricsJson.length() <= total && total in 1..10000) { "Invalid quality page inventory." }
+            val metrics = (0 until metricsJson.length()).map { i ->
+                val m = metricsJson.getJSONObject(i)
+                val n = m.getInt("page"); val chars = m.getInt("characters"); val size = m.getInt("utf8_bytes")
+                require(n in 1..total && chars in 0..BuilderCore.MAX_TEXT_BYTES && size in 0..BuilderCore.MAX_TEXT_BYTES) { "Invalid quality page inventory." }
+                BuilderQuality.Metric(n, chars, size)
+            }
+            require(metrics.map { it.page }.distinct().size == metrics.size) { "Duplicate quality page." }
             documents.add(BuilderCore.Document(source.getString("title"), source.optString("filename"), source.optString("source_sha256"),
-                total, source.optInt("omitted_minimal_text_pages"), contextual, id = sid))
+                total, source.optInt("omitted_minimal_text_pages"), contextual, id = sid, pageMetrics = metrics, reviewChanges = edits.filter { it.flags.isNotEmpty() }))
         }
         require(File(folder, "sources").listFiles().orEmpty().all { it.isFile && it.name in originalNames }) { "Unexpected original source file in review." }
         return Imported(documents, changes)
@@ -157,7 +169,7 @@ object BuilderReview {
                 val target = File(folder, name)
                 require(target.canonicalPath.startsWith(folder.canonicalPath + File.separator)) { "Invalid review archive path." }
                 if (entry.isDirectory) target.mkdirs() else {
-                    require(name == "review.json" || name == "LLM_PROMPT.txt" || name == "README.md" ||
+                    require(name == "review.json" || name == "quality_report.json" || name == "LLM_PROMPT.txt" || name == "README.md" ||
                         ((name.startsWith("original/") || name.startsWith("reviewed/") || name.startsWith("notes/") || name.startsWith("sources/")) && name.split('/').size == 2)) { "Unexpected file in review archive." }
                     target.parentFile?.mkdirs()
                     zip.getInputStream(entry).use { stream -> target.outputStream().use { output ->

@@ -117,6 +117,7 @@ fun BuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDatabaseRe
             if (state.busy) { LinearProgressIndicator(Modifier.fillMaxWidth()); Text(state.status); TextButton(onClick = { notice = true }) { Text("Show process") } }
             else { Text(state.status); state.result?.let { result ->
                 Text(result.text)
+                result.quality?.let { report -> OutlinedButton(onClick = { save(report) }) { Text("Save quality report") } }
                 result.file?.let { file ->
                     if (file.extension == "dataeater") OutlinedButton(onClick = { onDatabaseReady(file) }) { Text("Use database") }
                     else if (file.extension == "zip") OutlinedButton(onClick = { save(file) }) { Text("Save optimisation ZIP elsewhere") }

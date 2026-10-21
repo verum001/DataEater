@@ -98,3 +98,9 @@ No accuracy claim follows from timing or subjective ratings. Cache state, backen
 fallback, model-specific limits and selected/fitted evidence are described in
 reports. Five-minute generation limits bound an individual answer; native loading
 may finish before cancellation releases its resources.
+
+## D-029 — Source preparation quality reports (21 October 2026)
+
+New builds place non-factual preparation_quality metadata in each sources.json record. Source identity, page coverage, available extraction sizes, sparse/oversized text and review-change flags are fingerprinted with the existing sources entry and encrypted in the existing payload for private databases. The format stays v1; consumer readers ignore the optional field. Excluded documents are recorded under the first included source report. Creator exports bind the readable report to the artifact SHA-256 and require an explicit save action.
+
+Review ZIPs include a diagnostic quality_report.json, but reviewed builds recompute changes from fingerprint-checked original batches and exact page markers. PDF reading order remains unverified; keyword/unit/step differences are non-blocking hints. English/Russian restriction markers do not establish semantic fidelity. No AI service, OCR or new extraction/chunking algorithm is added. Reports are bounded to 10,000 original pages per source and 20,000 across a collection. Database writes stage and validate the whole package before atomic publication.

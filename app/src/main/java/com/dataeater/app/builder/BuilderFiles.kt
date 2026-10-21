@@ -67,7 +67,7 @@ class BuilderFiles(private val context: Context) {
                         require(depth == 0 && name in setOf("original", "reviewed", "notes", "sources")) { "Choose a review folder containing review.json, original and reviewed." }
                         require(!target.exists()); target.mkdir(); visit(child, target, depth + 1)
                     } else {
-                        require(depth == 1 || name in setOf("review.json", "LLM_PROMPT.txt", "README.md")) { "Unexpected file in review folder." }
+                        require(depth == 1 || name in setOf("review.json", "quality_report.json", "LLM_PROMPT.txt", "README.md")) { "Unexpected file in review folder." }
                         require(!target.exists()) { "Duplicate review filename." }
                         copy(DocumentsContract.buildDocumentUriUsingTree(uri, child), target, if (parent.name == "sources") 256L * 1024 * 1024 else 32L * 1024 * 1024)
                         total += target.length(); require(total <= 512L * 1024 * 1024) { "The review is too large for the phone." }
@@ -129,19 +129,20 @@ class BuilderFiles(private val context: Context) {
                     }
                     outline(document.documentCatalog.documentOutline?.firstChild, emptyList(), 0)
                     val stripper = PDFTextStripper().apply { sortByPosition = true; paragraphEnd = "\n\n" }
-                    val pages = mutableListOf<BuilderCore.Page>(); var omitted = 0; var textBytes = 0L; var contextPath = ""
+                    val pages = mutableListOf<BuilderCore.Page>(); val metrics = mutableListOf<BuilderQuality.Metric>(); var omitted = 0; var textBytes = 0L; var contextPath = ""
                     for (index in 1..document.numberOfPages) {
                         BuilderCore.checkpoint(); if (headings.containsKey(index)) contextPath = headings.getValue(index)
                         stripper.startPage = index; stripper.endPage = index
                         val text = clean(stripper.getText(document)); textBytes += text.toByteArray().size
                         require(textBytes <= BuilderCore.MAX_TEXT_BYTES) { "This PDF has too much text to build safely on the phone. Split it into smaller documents." }
+                        metrics.add(BuilderQuality.Metric(index, text.length, text.toByteArray(Charsets.UTF_8).size))
                         if (text.length >= 100) pages.add(BuilderCore.Page(index, text, context = contextPath)) else omitted++
                     }
                     val sparse = pages.isEmpty() || pages.sumOf { it.text.length }.toLong() / document.numberOfPages < 200
                     val warning = if (sparse) "${input.name}: little usable text. Scanned pages need OCR outside this app; missing content is not reconstructed." else if (omitted > 0) "${input.name}: $omitted pages had very little extractable text and were omitted. Compare them against the original." else ""
                     val metadata = document.documentInformation.title.orEmpty().trim()
                     val chosen = metadata.takeIf { it.length > 6 && it.any(Char::isLowerCase) } ?: title
-                    BuilderCore.Document(chosen, input.name, fingerprint, document.numberOfPages, omitted, pages, warning)
+                    BuilderCore.Document(chosen, input.name, fingerprint, document.numberOfPages, omitted, pages, warning, pageMetrics = metrics)
                 }
             }
             require(source.length() <= BuilderCore.MAX_TEXT_BYTES) { "This text document is too large. Split it into smaller files." }

@@ -229,6 +229,9 @@ fun AdvancedBuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDa
                                 OutlinedButton(onClick = { batchEditor = Editor("Access code", null, file.name, file.readText(), readOnly = true) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("View access code") }
                             }
                         }
+                        result.quality?.let { report ->
+                            OutlinedButton(onClick = { requestExport(BuilderViewModel.Export(file = report), report.name) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Save quality report") }
+                        }
                         result.signing?.let { item -> OutlinedButton(onClick = { privateExport = item }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Back up signing key") } }
                         result.secret?.let { item -> OutlinedButton(onClick = { privateExport = item }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Back up content key") } }
                         TextButton(onClick = { details = !details }) { Text(if (details) "Hide details" else "Details") }

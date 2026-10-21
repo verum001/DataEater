@@ -1,3 +1,9 @@
+0.1.7.7 — 21 October 2026
+• Offline preparation reports list included and omitted pages and PDF layout-review needs.
+• Reviewed text highlights changed restrictions, units, numbers, identifiers and numbered steps.
+• Save a quality report after database creation; optimisation ZIPs include a report.
+• Reports are fingerprinted with the source metadata and encrypted in private databases. AI remains optional.
+
 0.1.7.6 — F-Droid build preparation
 • Adds the F-Droid description, artwork, screenshots and release notes.
 • Explains that optional model downloads are separate from F-Droid review.

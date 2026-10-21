@@ -15,12 +15,13 @@ import java.util.zip.ZipOutputStream
 
 /** Portable builder operations. Android file picking and PDF extraction live separately. */
 object BuilderCore {
-    const val VERSION = "android-0.1.6.1"
+    const val VERSION = "android-0.1.7.7"
     const val MAX_TEXT_BYTES = 12 * 1024 * 1024
     const val MAX_REVIEW_BYTES = 64L * 1024 * 1024
     data class Page(val number: Int, val text: String, val paths: Map<String, String> = emptyMap(), val context: String = "")
     data class Document(val title: String, val filename: String, val fingerprint: String, val totalPages: Int,
-        val omitted: Int, val pages: List<Page>, val warning: String = "", val id: String = "")
+        val omitted: Int, val pages: List<Page>, val warning: String = "", val id: String = "", val pageMetrics: List<BuilderQuality.Metric> = emptyList(),
+        val reviewChanges: List<BuilderQuality.Change> = emptyList())
     data class Options(val name: String, val description: String = "", val language: String = "en",
         val license: String = "unknown", val publisher: String = "", val targetChars: Int = 700)
     data class Passage(val text: String, val page: Int, val section: String, val context: String)
@@ -101,11 +102,13 @@ object BuilderCore {
         require(options.name.isNotBlank()) { "Enter a database name." }
         require(documents.sumOf { it.pages.sumOf { p -> p.text.toByteArray().size.toLong() } } <= MAX_TEXT_BYTES) { "This collection is too large to build on a phone. Split it into smaller databases." }
         val sources = JSONArray(); val text = StringBuilder(); var count = 0
+        val quality = BuilderQuality.report(documents, options)
         for ((index, document) in documents.withIndex()) {
             checkpoint(); if (document.pages.isEmpty()) continue
             val sid = document.id.ifBlank { "s${index + 1}" }
             sources.put(JSONObject().put("id", sid).put("title", document.title).put("publisher", options.publisher)
                 .put("language", options.language).put("license", options.license)
+                .put("preparation_quality", quality.getJSONArray("documents").getJSONObject(index))
                 .put("year", Regex("(?:19|20)\\d{2}").find(document.filename)?.value?.toInt() ?: 0))
             for (passage in passages(document.pages, options.targetChars)) {
                 count++
@@ -115,6 +118,8 @@ object BuilderCore {
             }
         }
         require(count > 0) { "No usable text was found. Scanned PDFs need OCR outside this app." }
+        val excluded = JSONArray(documents.mapIndexedNotNull { index, doc -> if (doc.pages.isEmpty()) quality.getJSONArray("documents").getJSONObject(index) else null })
+        if (excluded.length() > 0 && sources.length() > 0) sources.getJSONObject(0).getJSONObject("preparation_quality").put("excluded_documents", excluded)
         val sourceBytes = (sources.toString(2) + "\n").toByteArray(); val chunkBytes = text.toString().toByteArray()
         require(chunkBytes.size <= DatabaseLimits.MAX_ENTRY_BYTES && sourceBytes.size <= DatabaseLimits.MAX_ENTRY_BYTES) { "Database text is too large." }
         val manifest = JSONObject().put("format", "dataeater").put("format_version", 1).put("database_id", id(options.name))
@@ -123,9 +128,17 @@ object BuilderCore {
             .put("counts", JSONObject().put("documents", sources.length()).put("chunks", count))
             .put("files", JSONObject().put("sources.json", JSONObject().put("sha256", "sha256:" + sha(sourceBytes)))
                 .put("chunks.jsonl", JSONObject().put("sha256", "sha256:" + sha(chunkBytes)).put("records", count)))
-        writeZip(output, linkedMapOf("manifest.json" to (manifest.toString(2) + "\n").toByteArray(), "sources.json" to sourceBytes, "chunks.jsonl" to chunkBytes))
-        val report = inspect(output)
-        return "Built ${options.name}: ${sources.length()} documents, $count passages.\n$report\n" + documents.mapNotNull { it.warning.takeIf(String::isNotBlank) }.joinToString("\n")
+        // The enclosing workspace/staged file is published only after inspection succeeds.
+        output.absoluteFile.parentFile?.mkdirs()
+        val stage = File.createTempFile(".dataeater-build-", ".tmp", output.absoluteFile.parentFile)
+        val report: String
+        try {
+            writeZip(stage, linkedMapOf("manifest.json" to (manifest.toString(2) + "\n").toByteArray(), "sources.json" to sourceBytes, "chunks.jsonl" to chunkBytes))
+            report = inspect(stage)
+            checkpoint()
+            java.nio.file.Files.move(stage.toPath(), output.toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        } finally { stage.delete() }
+        return BuilderQuality.summary(quality) + "\n" + "Built ${options.name}: ${sources.length()} documents, $count passages.\n$report\n" + documents.mapNotNull { it.warning.takeIf(String::isNotBlank) }.joinToString("\n")
     }
     fun writeZip(output: File, entries: Map<String, ByteArray>) {
         output.parentFile?.mkdirs()

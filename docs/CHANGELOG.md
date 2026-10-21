@@ -1,69 +1,16 @@
 # Changelog
 
-## DataEater 0.1.7.6 — F-Droid build preparation
+## 0.1.7.7 — 21 October 2026
 
-- Adds the app description, artwork, five current-interface screenshots and
-  versioned release notes used by F-Droid.
-- Explains that optional Hugging Face model downloads are separate from the app
-  and are not distributed or reviewed by F-Droid.
-- Removes the automatic JDK downloader; builds use an installed full JDK.
+Database creation includes offline coverage and review-change reports in Android, with a Save quality report action. Reports identify omitted pages, PDF layout-review needs and changes to restrictions, units, identifiers and numbered steps. Existing page markers, fingerprints and format-v1 reader compatibility are retained. Private reports are encrypted with database source metadata. AI is optional; automatic flags are not technical approval.
 
-Android version code 20 follows the earlier GitHub APK (0.1.7.5, code 18) and
-the reserved preparation code 19. GitHub remains the upstream repository.
-The existing 0.1.7.5 release and tag are unchanged. This update uses the existing
-release certificate. Official F-Droid build-server verification and inclusion
-remain pending.
+DataEater 0.1.7.1 — 12 October 2026
 
-## DataEater 0.1.7.5 — Security and database creation fixes
-
-- Fix the delayed crash after selecting PDFs in Create database.
-- Retain Android document read permissions for optimisation ZIP preparation. If a previously selected file has lost access, remove it and choose it again.
-- Replace internal file-permission errors with a recovery message and clean incomplete extraction copies.
-- Tighten database/licence identifiers, bind new unlock codes to encrypted database identity, reject duplicate ZIP/JSON entries, and enforce input limits.
-- Validate cryptographic inputs and strengthen private licence storage. Existing valid legacy licences remain supported.
-
-Database file integrity does not independently authenticate a publisher. Offline licence expiry still depends on the device clock; see docs/SECURITY_AUDIT_2026-10-13.md for the audit and remaining limitations. Matching security fixes are included in the DataEater-builder repository (0.4.1).
-
-Validation: 337 Android unit tests passed, signed release build and lint passed with zero errors. Three vivo phone tests passed: repeated PDF selection/cancellation, denied document access recovery, and optimisation ZIP creation/reimport with encryption, licensing and key backup. Python builder regression suites and staged public source checks also passed.
-
-Install DataEater-0.1.7.5.apk as an update. Version code 18 and the existing release certificate preserve update compatibility. Chats and keys remain in place. SHA256SUMS covers the APK and notices archive.
-
-
-## 0.1.7.2 — 13 October 2026
-
-Open Settings → Start benchmark, below Create database. Add questions, select
-installed models and databases, and optionally enable human ratings. Watch the
-automatic questions and answers in chat. Each model receives a fresh conversation
-for every question; selected databases are searched together.
-
-Reports include phone details, date/time, models, databases, questions, answers,
-load/retrieval/first-text/answer times and a comparison table. Add stars and feedback,
-reopen saved results, and select files to delete, copy to Downloads or share through
-Android. Reports stay in DataEater/benchmark until you export them. Keep the app open
-while measuring; completed answers are checkpointed. Timings and ratings do not
-establish answer accuracy.
-
-This update also includes the changes since 0.1.6.1:
-
-- Settings at the chat's top right, with database selection and the DB switch below the message box.
-- Search in several databases uses explicit checkboxes remembered per conversation.
-- Download models is inside expanded Model Selection, with Recommended/All modes,
-  live Hugging Face discovery and expandable publisher descriptions.
-- Reply preference selections use consistent accent colours.
-
-Validation: 322 automated tests passed, release build succeeded and Android lint
-reported no errors. The connected vivo phone completed the benchmark flow with
-two installed models and two invented questions against a synthetic database;
-rating persistence, two-file downloads, Android sharing and selected deletion
-passed. These checks do not cover every phone, Android version or document.
-
-Install DataEater-0.1.7.2.apk as an update to retain existing chats and keys.
-Android version code is 15; the established production certificate is retained.
-SHA256SUMS verifies the APK and accompanying notices archive. No models, real
-manuals, private instructions, research records or keys are included.
-
-APK SHA-256: 89d8977e34cfa96383a0f394f8c38f8fa9c6ab98c9ae5ed8ded9e8866db18d9a
-
+• Download models is under the expanded Model Selection area.
+• Recommended offers three reviewed model files; All adds recent public Hugging Face models.
+• Show description expands publisher text fetched on demand.
+• Database strictness and Reply length selections match the other control colours.
+• Help follows the new download route. Routine updates increment the final version component.
 
 Unreleased — 8 October 2026
 
