@@ -117,7 +117,7 @@ object BuilderCore {
                 require(text.length <= DatabaseLimits.MAX_ENTRY_BYTES / 2) { "Database text is too large. Build a smaller collection." }
             }
         }
-        require(count > 0) { "No usable text was found. Scanned PDFs need OCR outside this app." }
+        require(count > 0) { "No usable text was found. Enable Read scanned PDFs (OCR) for scanned documents, or provide readable text." }
         val excluded = JSONArray(documents.mapIndexedNotNull { index, doc -> if (doc.pages.isEmpty()) quality.getJSONArray("documents").getJSONObject(index) else null })
         if (excluded.length() > 0 && sources.length() > 0) sources.getJSONObject(0).getJSONObject("preparation_quality").put("excluded_documents", excluded)
         val sourceBytes = (sources.toString(2) + "\n").toByteArray(); val chunkBytes = text.toString().toByteArray()

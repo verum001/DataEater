@@ -16,10 +16,10 @@ document excerpts requires a separate opt-in.
 ## Get started
 
 1. Install the APK from GitHub Releases. Android may ask to allow installation.
-2. Open the app, grant storage access and choose **Download AI** or **Settings → Model Selection → Download models**, or configure
-   **Settings → AI connection → OpenRouter** with your own API key.
-3. Download manuals through **Settings → Database Selection → Download databases**,
-   create a database through **Settings → Create database**, or put an existing
+2. Open the app, grant storage access and choose **Download AI** or **Settings → Model settings → Manage models → Download models**, or configure
+   **Settings → Model settings → AI connection → OpenRouter** with your own API key.
+3. Download manuals through **Settings → Database settings → Manage databases → Download databases**,
+   create a database through **Settings → Database settings → Create database**, or put an existing
    `.dataeater` file in the DataEater folder in internal storage.
 4. Select the database and model in Settings. Turn **Database** on to ask about
    the documents, or off for general chat.
@@ -30,9 +30,9 @@ access-code unlocking requires Android 12+. Storage and memory requirements
 vary by model. The interface is currently English. No model or real manual is
 bundled. See [supported devices](docs/supported-devices.md).
 
-Current release: [0.1.7.7](https://github.com/verum001/DataEater/releases/tag/v0.1.7.7).
+Current release: [0.1.7.8](https://github.com/verum001/DataEater/releases/tag/v0.1.7.8).
 
-Version 0.1.7.7 uses Android version code 21 and the existing release certificate.
+Version 0.1.7.8 uses Android version code 22 and the existing release certificate.
 GitHub is the upstream source and issue tracker. The earlier 0.1.7.5 release and
 tag remain unchanged at version code 18; code 19 was reserved by an earlier
 preparation revision. Official F-Droid build-server verification and inclusion
@@ -45,15 +45,15 @@ remain pending.
 - Short/Normal/Detailed reply preferences.
 - Model downloads with Recommended/All modes, publisher descriptions, checksums, progress and cancellation.
 - Local model benchmarks with question lists, database selection, ratings and exportable comparisons.
-- Saved conversations, separate per-session choices, text copy and confirmed deletion.
+- Saved conversations with long-press pin, rename and delete menus; separate per-session choices and text copy.
 - Database downloads with expandable descriptions, checksums and versioned files.
-- Simple database creation, offline preparation-quality reports and manual LLM optimisation on Android.
+- Database creation with offline English/Russian OCR, preparation-quality reports and optional manual LLM optimisation on Android.
 - Encrypted databases and signed, device-bound creator-issued access codes.
 - Light/dark themes, text sizes and adaptable layouts.
 
 The separate [DataEater Builder](https://github.com/verum001/DataEater-builder)
 provides the same database workflow through a Linux desktop and Python CLI.
-Scanned PDFs need external OCR; diagrams are not reconstructed as knowledge.
+Database creation can recognise scanned PDF pages offline in English, Russian or both; see [OCR](docs/OCR.md). The desktop builder needs external OCR. Diagrams are not reconstructed as knowledge.
 
 ## Privacy
 

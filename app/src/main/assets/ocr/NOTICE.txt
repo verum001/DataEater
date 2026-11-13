@@ -1,0 +1,18 @@
+Offline OCR components
+
+Tesseract4Android 4.9.0 Java/JNI wrapper, adapted for Bitmap input.
+Copyright (C) 2019 Adaptech s.r.o., Robert Pösel
+Copyright (C) 2011 Google Inc.
+Copyright (C) 2011 Robert Theis
+Apache-2.0; see TESSERACT-LICENSE.txt.
+https://github.com/adaptech-cz/Tesseract4Android
+
+Tesseract 5.5.3, Apache-2.0; see TESSERACT-LICENSE.txt.
+https://github.com/tesseract-ocr/tesseract
+
+Leptonica 1.87.0; copyright and BSD-style terms in LEPTONICA-LICENSE.txt.
+https://github.com/DanBloomberg/leptonica
+
+English and Russian tessdata_fast models, Apache-2.0; see LICENSE.
+Exact model revision, sizes and SHA-256 hashes are in UPSTREAM.json.
+https://github.com/tesseract-ocr/tessdata_fast

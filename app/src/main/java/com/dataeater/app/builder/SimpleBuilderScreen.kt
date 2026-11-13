@@ -1,5 +1,6 @@
 package com.dataeater.app.builder
 
+import com.dataeater.app.ui.theme.DataEaterButton
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -56,38 +57,38 @@ fun BuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDatabaseRe
     BackHandler(onBack = onBack)
     if (setup) AlertDialog(onDismissRequest = { setup = false }, title = { Text("Create secret key vault?") },
         text = { Text("Private database keys will be encrypted and stored inside DataEater using Android's key store. Save a secure key backup: uninstalling the app removes keys stored only here.") },
-        confirmButton = { TextButton(onClick = { setup = false; encrypted = true; model.setupVault() }) { Text("Create vault") } },
-        dismissButton = { TextButton(onClick = { setup = false }) { Text("Cancel") } })
+        confirmButton = { DataEaterButton(onClick = { setup = false; encrypted = true; model.setupVault() }) { Text("Create vault") } },
+        dismissButton = { DataEaterButton(onClick = { setup = false }) { Text("Cancel") } })
     remove?.let { item -> AlertDialog(onDismissRequest = { remove = null }, title = { Text("Remove saved key?") },
         text = { Text("Remove the stored key for ${item.name}? The database stays on the phone. Without a key backup you cannot issue new licences for it.") },
-        confirmButton = { TextButton(onClick = { remove = null; model.removeKey(item) }) { Text("Remove") } },
-        dismissButton = { TextButton(onClick = { remove = null }) { Text("Cancel") } }) }
+        confirmButton = { DataEaterButton(onClick = { remove = null; model.removeKey(item) }) { Text("Remove") } },
+        dismissButton = { DataEaterButton(onClick = { remove = null }) { Text("Cancel") } }) }
     backup?.let { item -> AlertDialog(onDismissRequest = { backup = null }, title = { Text("Save private key backup?") },
         text = { Text("The backup contains the database content key and its signing key. Keep it private; never send it with the database or optimisation ZIP.") },
-        confirmButton = { TextButton(onClick = {
+        confirmButton = { DataEaterButton(onClick = {
             backup = null; model.prepareVaultBackup(item) { file -> save(file) }
-        }) { Text("Save backup") } }, dismissButton = { TextButton(onClick = { backup = null }) { Text("Cancel") } }) }
+        }) { Text("Save backup") } }, dismissButton = { DataEaterButton(onClick = { backup = null }) { Text("Cancel") } }) }
     licence?.let { item -> AlertDialog(onDismissRequest = { if (!state.busy) licence = null }, title = { Text("Licence key: ${item.name}") },
         text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(request, { request = it }, label = { Text("Phone request code") }, enabled = !state.busy)
             OutlinedTextField(expiry, { expiry = it }, label = { Text("Expiry (never, 30d, or YYYY-MM-DD)") }, enabled = !state.busy)
             Text(state.status)
             state.result?.file?.takeIf { it.extension == "lic" }?.let { file ->
-                OutlinedButton(onClick = { save(file) }, enabled = !state.busy) { Text("Save licence key") }
+                DataEaterButton(onClick = { save(file) }, enabled = !state.busy) { Text("Save licence key") }
             }
-        } }, confirmButton = { TextButton(onClick = { model.licenceFor(item, request, expiry) }, enabled = !state.busy && request.isNotBlank()) { Text("Generate") } },
-        dismissButton = { TextButton(onClick = { licence = null }, enabled = !state.busy) { Text("Done") } }) }
+        } }, confirmButton = { DataEaterButton(onClick = { model.licenceFor(item, request, expiry) }, enabled = !state.busy && request.isNotBlank()) { Text("Generate") } },
+        dismissButton = { DataEaterButton(onClick = { licence = null }, enabled = !state.busy) { Text("Done") } }) }
     if (notice) Dialog(onDismissRequest = { notice = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(if (state.busy) "Creating database" else "Database preparation", style = MaterialTheme.typography.headlineMedium)
-                Text("Created database will be saved at /sdcard/DataEater. The process runs in the background.")
+                Text("Created database will be saved at /sdcard/DataEater_beta. The process runs in the background.")
                 if (optimise && !returned) Text("The optimisation ZIP contains unencrypted original files, parsed text and the prompt. Nothing is sent online automatically.")
                 if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 Text(state.status)
                 state.result?.let { Text(it.text) }
-                Button(onClick = { notice = false }) { Text(if (state.busy) "Continue in background" else "Done") }
-                if (state.busy) TextButton(onClick = model::cancel) { Text("Cancel process") }
+                DataEaterButton(onClick = { notice = false }) { Text(if (state.busy) "Continue in background" else "Done") }
+                if (state.busy) DataEaterButton(onClick = model::cancel) { Text("Cancel process") }
             }
         }
     }
@@ -96,9 +97,9 @@ fun BuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDatabaseRe
     }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).imePadding().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedTextField(state.fields["name"].orEmpty(), { model.field("name", it) }, label = { Text("Name") }, enabled = !state.busy, modifier = Modifier.fillMaxWidth())
-            OutlinedButton(onClick = { files.launch(arrayOf("application/pdf", "text/plain", "text/markdown", "application/octet-stream")) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Choose files") }
+            DataEaterButton(onClick = { files.launch(arrayOf("application/pdf", "text/plain", "text/markdown", "application/octet-stream")) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Choose files") }
             state.inputs.forEach { input -> Row(Modifier.fillMaxWidth()) {
-                Text(input.name, Modifier.weight(1f)); TextButton(onClick = { model.removeInput(input.uri) }, enabled = !state.busy) { Text("Remove") }
+                Text(input.name, Modifier.weight(1f)); DataEaterButton(onClick = { model.removeInput(input.uri) }, enabled = !state.busy) { Text("Remove") }
             } }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Encrypt", Modifier.padding(top = 12.dp))
@@ -108,19 +109,20 @@ fun BuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDatabaseRe
                 Text("Optimise with LLM", Modifier.padding(top = 12.dp))
                 Switch(optimise, { optimise = it }, enabled = !state.busy, modifier = Modifier.semantics { contentDescription = "Optimise with LLM" })
             }
+            BuilderOcrSettings(model)
             if (!canUseDatabase) Text("Grant storage access in Settings to save in the DataEater folder.")
-            Button(onClick = { returned = false; create(false) }, enabled = !state.busy && canUseDatabase && state.fields["name"].orEmpty().isNotBlank() && state.inputs.isNotEmpty() && (!encrypted || state.vaultReady), modifier = Modifier.fillMaxWidth()) { Text("Create") }
+            DataEaterButton(onClick = { returned = false; create(false) }, enabled = !state.busy && canUseDatabase && state.fields["name"].orEmpty().isNotBlank() && state.inputs.isNotEmpty() && (!encrypted || state.vaultReady), modifier = Modifier.fillMaxWidth()) { Text("Create") }
             if (optimise) {
-                OutlinedButton(onClick = { review.launch(arrayOf("application/zip", "application/octet-stream")) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Choose optimised ZIP") }
-                Button(onClick = { create(true) }, enabled = !state.busy && returned && state.reviewId != null && canUseDatabase && (!encrypted || state.vaultReady), modifier = Modifier.fillMaxWidth()) { Text("Continue after optimisation") }
+                DataEaterButton(onClick = { review.launch(arrayOf("application/zip", "application/octet-stream")) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Choose optimised ZIP") }
+                DataEaterButton(onClick = { create(true) }, enabled = !state.busy && returned && state.reviewId != null && canUseDatabase && (!encrypted || state.vaultReady), modifier = Modifier.fillMaxWidth()) { Text("Continue after optimisation") }
             }
-            if (state.busy) { LinearProgressIndicator(Modifier.fillMaxWidth()); Text(state.status); TextButton(onClick = { notice = true }) { Text("Show process") } }
+            if (state.busy) { LinearProgressIndicator(Modifier.fillMaxWidth()); Text(state.status); DataEaterButton(onClick = { notice = true }) { Text("Show process") } }
             else { Text(state.status); state.result?.let { result ->
                 Text(result.text)
-                result.quality?.let { report -> OutlinedButton(onClick = { save(report) }) { Text("Save quality report") } }
+                result.quality?.let { report -> DataEaterButton(onClick = { save(report) }) { Text("Save quality report") } }
                 result.file?.let { file ->
-                    if (file.extension == "dataeater") OutlinedButton(onClick = { onDatabaseReady(file) }) { Text("Use database") }
-                    else if (file.extension == "zip") OutlinedButton(onClick = { save(file) }) { Text("Save optimisation ZIP elsewhere") }
+                    if (file.extension == "dataeater") DataEaterButton(onClick = { onDatabaseReady(file) }) { Text("Use database") }
+                    else if (file.extension == "zip") DataEaterButton(onClick = { save(file) }) { Text("Save optimisation ZIP elsewhere") }
                 }
             } }
             HorizontalDivider()
@@ -128,10 +130,10 @@ fun BuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDatabaseRe
             val keys = state.keys.filter { it.kind == "content" }
             if (keys.isEmpty()) Text("No private database keys stored.")
             for (item in keys) {
-                TextButton(onClick = { request = ""; model.clearResult(); licence = item }, enabled = !state.busy) { Text(item.name.let { if (it.endsWith(".dataeater")) it else "$it.dataeater" }) }
-                Row { TextButton(onClick = { backup = item }, enabled = !state.busy) { Text("Backup") }; TextButton(onClick = { remove = item }, enabled = !state.busy) { Text("Remove key") } }
+                DataEaterButton(onClick = { request = ""; model.clearResult(); licence = item }, enabled = !state.busy) { Text(item.name.let { if (it.endsWith(".dataeater")) it else "$it.dataeater" }) }
+                Row { DataEaterButton(onClick = { backup = item }, enabled = !state.busy) { Text("Backup") }; DataEaterButton(onClick = { remove = item }, enabled = !state.busy) { Text("Remove key") } }
             }
-            OutlinedButton(onClick = { restore.launch(arrayOf("application/json", "application/octet-stream")) }, enabled = !state.busy) { Text("Restore key backup") }
+            DataEaterButton(onClick = { restore.launch(arrayOf("application/json", "application/octet-stream")) }, enabled = !state.busy) { Text("Restore key backup") }
         }
     }
 }

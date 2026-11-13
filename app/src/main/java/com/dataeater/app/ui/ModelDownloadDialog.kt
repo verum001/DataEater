@@ -1,5 +1,6 @@
 package com.dataeater.app.ui
 
+import com.dataeater.app.ui.theme.DataEaterButton
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -76,8 +77,8 @@ fun ModelDownloadDialog(state: ModelDownloadUiState, onDismiss: () -> Unit) {
                 OutlinedTextField(value = query, onValueChange = { query = it.take(120) }, label = { Text("Model or publisher") },
                     singleLine = true, modifier = Modifier.fillMaxWidth())
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { request++ }, enabled = !loading) { Text("Search") }
-                    TextButton(onClick = { request++ }, enabled = !loading) { Text("Refresh") }
+                    DataEaterButton(onClick = { request++ }, enabled = !loading) { Text("Search") }
+                    DataEaterButton(onClick = { request++ }, enabled = !loading) { Text("Refresh") }
                 }
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Checkbox(checked = onlyFits, onCheckedChange = { onlyFits = it })
@@ -90,7 +91,7 @@ fun ModelDownloadDialog(state: ModelDownloadUiState, onDismiss: () -> Unit) {
                     Text("Current download: ${state.download.entry?.name.orEmpty()}", style = MaterialTheme.typography.titleSmall)
                     LinearProgressIndicator(progress = { state.download.progress }, modifier = Modifier.fillMaxWidth())
                     Text(state.download.message, style = MaterialTheme.typography.bodySmall)
-                    TextButton(onClick = state.onCancelDownload) { Text("Cancel") }
+                    DataEaterButton(onClick = state.onCancelDownload) { Text("Cancel") }
                 }
                 if (!loading && visible.isEmpty()) Text("No downloadable matches. Try another name or turn off the memory filter.")
                 for (entry in visible) {
@@ -110,17 +111,17 @@ fun ModelDownloadDialog(state: ModelDownloadUiState, onDismiss: () -> Unit) {
                             active -> {
                                 LinearProgressIndicator(progress = { state.download.progress }, modifier = Modifier.fillMaxWidth())
                                 Text(state.download.message, style = MaterialTheme.typography.bodySmall)
-                                TextButton(onClick = state.onCancelDownload) { Text("Cancel") }
+                                DataEaterButton(onClick = state.onCancelDownload) { Text("Cancel") }
                             }
                             installed -> {
                                 Text("Installed", color = MaterialTheme.colorScheme.primary)
                                 if (state.loadedModelName != installedModel.displayName) {
-                                    TextButton(onClick = { state.onLoadModel(installedModel); onDismiss() }, enabled = !state.isBusy && fits) { Text("Use model") }
+                                    DataEaterButton(onClick = { state.onLoadModel(installedModel); onDismiss() }, enabled = !state.isBusy && fits) { Text("Use model") }
                                 }
                             }
                             else -> {
                                 if (selected && state.download.message.isNotBlank()) Text(state.download.message, style = MaterialTheme.typography.bodySmall)
-                                OutlinedButton(onClick = { state.onDownloadModel(entry) }, enabled = !loading && !state.download.active && !state.isBusy) {
+                                DataEaterButton(onClick = { state.onDownloadModel(entry) }, enabled = !loading && !state.download.active && !state.isBusy) {
                                     Text(if (!state.hasStorageAccess) "Grant storage access" else if (selected) "Retry" else "Download")
                                 }
                             }
@@ -137,7 +138,7 @@ fun ModelDownloadDialog(state: ModelDownloadUiState, onDismiss: () -> Unit) {
                 Text("Chat and documents stay on your device. Downloads may use mobile data.", style = MaterialTheme.typography.bodySmall)
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+        confirmButton = { DataEaterButton(onClick = onDismiss) { Text("Done") } },
     )
 }
 
@@ -155,7 +156,7 @@ private fun ModelDescription(entry: ModelCatalog.Entry) {
         catch (e: Exception) { publisherText = "" }
         finally { loading = false }
     }
-    TextButton(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth().semantics {
+    DataEaterButton(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth().semantics {
         stateDescription = if (expanded) "Expanded" else "Collapsed"
     }) {
         Text(if (expanded) "Hide description" else "Show description", Modifier.weight(1f))
@@ -169,7 +170,7 @@ private fun ModelDescription(entry: ModelCatalog.Entry) {
             Text(publisherText.orEmpty(), style = MaterialTheme.typography.bodySmall)
         } else {
             Text("Publisher description is unavailable.", style = MaterialTheme.typography.bodySmall)
-            TextButton(onClick = { attempt++ }) { Text("Retry description") }
+            DataEaterButton(onClick = { attempt++ }) { Text("Retry description") }
         }
     }
 }

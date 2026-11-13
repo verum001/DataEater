@@ -60,7 +60,7 @@ Manifest hashes detect changes relative to the manifest. The manifest is not sig
 
 ## Builder boundaries
 
-The Linux engine lives in `../DataEater_builder`; the main app's legacy launcher forwards there. Linux PDF extraction uses PyMuPDF; Android uses PDFBox. Reading order can differ. Both preserve original page references and validate reviewed-text structure, but fingerprints/page markers do not establish technical accuracy. Neither workflow includes OCR or reconstructs diagrams. Documents and review exports are not automatically uploaded to an LLM.
+The Linux engine lives in `../DataEater_builder`; the main app's legacy launcher forwards there. Linux PDF extraction uses PyMuPDF; Android uses PDFBox. Reading order can differ. Both preserve original page references and validate reviewed-text structure, but fingerprints/page markers do not establish technical accuracy. Android database creation optionally runs bundled offline OCR on sparse PDF pages; the Linux builder needs external OCR. Neither workflow reconstructs diagrams. Documents and review exports are not automatically uploaded to an LLM.
 
 The Android builder writes new output through the document picker or adds a newly named database to DataEater. The reader/search/chat path reads its input database; it does not rewrite it. See [Android builder](ANDROID_BUILDER.md) and the independent builder guide.
 

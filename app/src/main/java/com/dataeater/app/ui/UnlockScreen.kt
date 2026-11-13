@@ -1,5 +1,6 @@
 package com.dataeater.app.ui
 
+import com.dataeater.app.ui.theme.DataEaterButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -239,7 +240,7 @@ fun UnlockScreen(
                         // there is, and a 124-character public key on screen
                         // is one more thing to photograph, mistype or read
                         // aloud wrongly.
-                        requestCode == null -> Button(
+                        requestCode == null -> DataEaterButton(
                             onClick = onPrepareRequestCode,
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !isPreparingRequestCode,
@@ -269,15 +270,15 @@ fun UnlockScreen(
                             // thing to want, so it stays available. Showing
                             // the code is not: there is no reason to.
                             Row {
-                                Button(onClick = onShareRequestCode) {
+                                DataEaterButton(onClick = onShareRequestCode) {
                                     Text("Send again")
                                 }
                                 Spacer(Modifier.width(8.dp))
-                                OutlinedButton(onClick = onCopyRequestCode) {
+                                DataEaterButton(onClick = onCopyRequestCode) {
                                     Text(if (hasCopiedRequestCode) "Copied" else "Copy")
                                 }
                                 Spacer(Modifier.width(8.dp))
-                                OutlinedButton(onClick = onSaveRequestCode) {
+                                DataEaterButton(onClick = onSaveRequestCode) {
                                     Text("Save to a file")
                                 }
                             }
@@ -372,7 +373,7 @@ fun UnlockScreen(
                             onHide = { showPasteBox = false },
                         )
                     } else {
-                        TextButton(onClick = { showPasteBox = true }) {
+                        DataEaterButton(onClick = { showPasteBox = true }) {
                             Text("I have a code as text instead")
                         }
                     }
@@ -454,7 +455,7 @@ private fun LicenceFileRow(
 
         Spacer(Modifier.width(8.dp))
 
-        OutlinedButton(
+        DataEaterButton(
             onClick = onUse,
             enabled = enabled,
         ) {
@@ -508,7 +509,7 @@ private fun PasteCode(
         }
 
         Row(modifier = Modifier.padding(top = 12.dp)) {
-            Button(
+            DataEaterButton(
                 onClick = onUnlock,
                 modifier = Modifier.weight(1f),
                 enabled = value.isNotBlank() && !isChecking,
@@ -516,7 +517,7 @@ private fun PasteCode(
                 Text(if (isChecking) "Checking…" else "Open the database")
             }
             Spacer(Modifier.width(8.dp))
-            TextButton(onClick = onHide) { Text("Cancel") }
+            DataEaterButton(onClick = onHide) { Text("Cancel") }
         }
     }
 }

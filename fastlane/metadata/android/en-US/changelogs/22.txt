@@ -1,0 +1,1 @@
+Optional offline English/Russian OCR for scanned PDF database creation. OCR provenance in quality reports and optimisation packages. No AI model or network required. Check technical content against source pages.

@@ -81,3 +81,10 @@ research-*/
 benchmarks/
 local.properties
 .github-private/
+
+# Generated OCR native headers
+ocr-native/src/main/cpp/tesseract/src/src/api/config_auto.h
+ocr-native/src/main/cpp/tesseract/src/include/tesseract/version.h
+ocr-native/src/main/cpp/leptonica/src/src/endianness.h
+**/cmake.lock
+**/build/

@@ -114,14 +114,15 @@ class LicenceFilesTest {
 
     @Test
     fun anExpiryIsShownAsWritten() {
+        val future = java.time.LocalDate.now().plusYears(1).toString()
         val file = LicenceFiles.LicenceFile(
             name = "acme.lic",
             path = java.io.File("/sdcard/DataEater/Lic/acme.lic"),
             claimedDatabaseId = "hf4500",
-            claimedExpiry = "2026-11-05",
+            claimedExpiry = future,
             looksValid = true,
         )
-        assertEquals("expires 2026-11-05", file.claim)
+        assertEquals("expires $future", file.claim)
     }
 
     /** A file that is not a licence must say so rather than look unclaimed. */

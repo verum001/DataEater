@@ -1,5 +1,6 @@
 package com.dataeater.app.benchmark
 
+import com.dataeater.app.ui.theme.DataEaterButton
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
@@ -41,24 +42,24 @@ fun BenchmarkScreen(manager: BenchmarkManager, state: BenchmarkManager.State,
     BackHandler(onBack = onBack)
     if (deleteDialog) AlertDialog(onDismissRequest = { deleteDialog = false }, title = { Text("Delete selected results?") },
         text = { Text("Delete ${selected.size} saved benchmark result(s) and their ratings?") },
-        confirmButton = { TextButton(onClick = { manager.delete(selected.toSet()); deleteDialog = false }) { Text("Delete") } },
-        dismissButton = { TextButton(onClick = { deleteDialog = false }) { Text("Cancel") } })
+        confirmButton = { DataEaterButton(onClick = { manager.delete(selected.toSet()); deleteDialog = false }) { Text("Delete") } },
+        dismissButton = { DataEaterButton(onClick = { deleteDialog = false }) { Text("Cancel") } })
     Scaffold(modifier = Modifier.statusBarsPadding().navigationBarsPadding().imePadding(), topBar = {
         TopAppBar(title = { Text("Benchmark") }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } })
     }) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Ask the same questions of installed models. Each answer starts a fresh conversation. Keep the app open during the run.", style = MaterialTheme.typography.bodyMedium)
             OutlinedTextField(value = draft, onValueChange = { draft = it.take(4000) }, label = { Text("Question") }, minLines = 2, enabled = !state.busy, modifier = Modifier.fillMaxWidth().testTag("benchmark-question"))
-            Button(enabled = !state.busy && draft.isNotBlank() && form.questions.size < 50, onClick = {
+            DataEaterButton(enabled = !state.busy && draft.isNotBlank() && form.questions.size < 50, onClick = {
                 manager.form { it.copy(questions = it.questions + draft.trim()) }; draft = ""
             }) { Text("Add question") }
             form.questions.forEachIndexed { index, question ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("${index + 1}. $question", Modifier.weight(1f))
-                    TextButton(enabled = !state.busy, onClick = { manager.form { it.copy(questions = it.questions.filterIndexed { i, _ -> i != index }) } }) { Text("Remove") }
+                    DataEaterButton(enabled = !state.busy, onClick = { manager.form { it.copy(questions = it.questions.filterIndexed { i, _ -> i != index }) } }) { Text("Remove") }
                 }
             }
-            OutlinedButton(onClick = { modelList = !modelList }, modifier = Modifier.fillMaxWidth()) { Text("Select models (${form.models.size}) ${if (modelList) "▴" else "▾"}") }
+            DataEaterButton(onClick = { modelList = !modelList }, modifier = Modifier.fillMaxWidth()) { Text("Select models (${form.models.size}) ${if (modelList) "▴" else "▾"}") }
             if (modelList) {
                 if (models.isEmpty()) Text("No installed models. Download models in Settings first.")
                 models.forEach { model ->
@@ -68,7 +69,7 @@ fun BenchmarkScreen(manager: BenchmarkManager, state: BenchmarkManager.State,
             }
             ToggleRow("Use database", form.useDatabase, !state.busy) { value -> manager.form { it.copy(useDatabase = value) } }
             if (form.useDatabase) {
-                OutlinedButton(onClick = { databaseList = !databaseList }, modifier = Modifier.fillMaxWidth()) { Text("Select databases (${form.databases.size}) ${if (databaseList) "▴" else "▾"}") }
+                DataEaterButton(onClick = { databaseList = !databaseList }, modifier = Modifier.fillMaxWidth()) { Text("Select databases (${form.databases.size}) ${if (databaseList) "▴" else "▾"}") }
                 if (databaseList) {
                     if (databases.isEmpty()) Text("No databases. Download or create one in Settings first.")
                     databases.forEach { db -> CheckRow(db.displayName, db.file.name in form.databases, !state.busy,
@@ -77,9 +78,9 @@ fun BenchmarkScreen(manager: BenchmarkManager, state: BenchmarkManager.State,
                 Text("Searches all selected databases together. Private databases must be unlocked first.", style = MaterialTheme.typography.bodySmall)
             } else Text("Answers use model knowledge and are not checked against documents.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
             ToggleRow("Human rating", form.humanRating, !state.busy) { value -> manager.form { it.copy(humanRating = value) } }
-            TextButton(enabled = !state.busy && !state.fileBusy, onClick = { onRefresh(); manager.refresh() }) { Text("Refresh lists") }
-            Button(onClick = onRun, enabled = canRun && !state.busy && !state.fileBusy && form.questions.isNotEmpty() && form.models.isNotEmpty() && (!form.useDatabase || form.databases.isNotEmpty()), modifier = Modifier.fillMaxWidth()) { Text("Run benchmark") }
-            if (state.run != null) OutlinedButton(onClick = onView, modifier = Modifier.fillMaxWidth()) { Text(if (state.busy) "View running benchmark" else "View latest benchmark") }
+            DataEaterButton(enabled = !state.busy && !state.fileBusy, onClick = { onRefresh(); manager.refresh() }) { Text("Refresh lists") }
+            DataEaterButton(onClick = onRun, enabled = canRun && !state.busy && !state.fileBusy && form.questions.isNotEmpty() && form.models.isNotEmpty() && (!form.useDatabase || form.databases.isNotEmpty()), modifier = Modifier.fillMaxWidth()) { Text("Run benchmark") }
+            if (state.run != null) DataEaterButton(onClick = onView, modifier = Modifier.fillMaxWidth()) { Text(if (state.busy) "View running benchmark" else "View latest benchmark") }
             if (state.message.isNotBlank()) Text(state.message, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("benchmark-status"))
             HorizontalDivider(); Text("Results", style = MaterialTheme.typography.titleLarge)
             Text("Saved in DataEater/benchmark. Tap a filename to view answers and ratings.", style = MaterialTheme.typography.bodySmall)
@@ -92,9 +93,9 @@ fun BenchmarkScreen(manager: BenchmarkManager, state: BenchmarkManager.State,
             }
             val enabled = selected.isNotEmpty() && !state.busy && !state.fileBusy
             // Separate rows remain usable with large system text.
-            OutlinedButton(onClick = { deleteDialog = true }, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text("Delete") }
-            OutlinedButton(onClick = { manager.download(selected.toSet()) }, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text("Download") }
-            OutlinedButton(onClick = { manager.share(selected.toSet()) }, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text("Share") }
+            DataEaterButton(onClick = { deleteDialog = true }, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text("Delete") }
+            DataEaterButton(onClick = { manager.download(selected.toSet()) }, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text("Download") }
+            DataEaterButton(onClick = { manager.share(selected.toSet()) }, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text("Share") }
         }
     }
 }
@@ -135,10 +136,10 @@ fun BenchmarkChat(manager: BenchmarkManager, state: BenchmarkManager.State, down
             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (!run.useDatabase) Text("Database off: answers are not checked against documents.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
                 Text(state.message.ifBlank { run.status }, style = MaterialTheme.typography.bodySmall)
-                if (state.busy) Button(onClick = { manager.cancel() }, modifier = Modifier.fillMaxWidth()) { Text("Stop benchmark") }
+                if (state.busy) DataEaterButton(onClick = { manager.cancel() }, modifier = Modifier.fillMaxWidth()) { Text("Stop benchmark") }
                 else Row(Modifier.fillMaxWidth()) {
-                    TextButton(onClick = { manager.retrySave() }, Modifier.weight(1f)) { Text("Save result") }
-                    TextButton(onClick = onBack, Modifier.weight(1f)) { Text("Results") }
+                    DataEaterButton(onClick = { manager.retrySave() }, Modifier.weight(1f)) { Text("Save result") }
+                    DataEaterButton(onClick = onBack, Modifier.weight(1f)) { Text("Results") }
                 }
             }
         }, answerFooter = { message ->
@@ -156,15 +157,15 @@ private fun Rating(answer: BenchmarkAnswer, onRate: (Int?, String) -> Unit) {
     Text("Give feedback", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Row(Modifier.fillMaxWidth()) {
         (1..5).forEach { star ->
-            TextButton(onClick = { onRate(star, answer.feedback) }, modifier = Modifier.weight(1f).semantics { contentDescription = "Rate ${answer.id} $star stars" }, contentPadding = PaddingValues(0.dp)) {
+            DataEaterButton(onClick = { onRate(star, answer.feedback) }, modifier = Modifier.weight(1f).semantics { contentDescription = "Rate ${answer.id} $star stars" }, contentPadding = PaddingValues(0.dp)) {
                 Text(if ((answer.stars ?: 0) >= star) "★" else "☆", style = MaterialTheme.typography.titleLarge)
             }
         }
     }
-    TextButton(onClick = { expanded = !expanded }) { Text(if (expanded) "Hide feedback" else "Add feedback", style = MaterialTheme.typography.labelSmall) }
+    DataEaterButton(onClick = { expanded = !expanded }) { Text(if (expanded) "Hide feedback" else "Add feedback", style = MaterialTheme.typography.labelSmall) }
     if (expanded) {
         OutlinedTextField(feedback, { feedback = it.take(2000) }, label = { Text("Feedback (optional)") }, modifier = Modifier.fillMaxWidth())
-        TextButton(onClick = { onRate(answer.stars, feedback) }) { Text("Save feedback") }
+        DataEaterButton(onClick = { onRate(answer.stars, feedback) }) { Text("Save feedback") }
     }
-    if (answer.stars != null || answer.feedback.isNotBlank()) TextButton(onClick = { onRate(null, "") }) { Text("Clear rating and feedback", style = MaterialTheme.typography.labelSmall) }
+    if (answer.stars != null || answer.feedback.isNotBlank()) DataEaterButton(onClick = { onRate(null, "") }) { Text("Clear rating and feedback", style = MaterialTheme.typography.labelSmall) }
 }

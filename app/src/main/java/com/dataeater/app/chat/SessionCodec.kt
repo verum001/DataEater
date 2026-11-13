@@ -26,6 +26,7 @@ object SessionCodec {
             put("version", VERSION)
             put("id", session.id)
             put("title", session.title)
+            put("pinned", session.pinned)
             put("model_name", session.modelName ?: JSONObject.NULL)
             put("database_name", session.databaseName)
             put("use_database", session.useDatabase)
@@ -45,6 +46,7 @@ object SessionCodec {
             Session(
                 id = json.getString("id"),
                 title = json.optString("title", "Session"),
+                pinned = json.optBoolean("pinned", false),
                 messages = json.optJSONArray("messages").decodeMessages(),
                 modelName = if (json.isNull("model_name")) null else json.optString("model_name"),
                 databaseName = json.optString("database_name", ""),

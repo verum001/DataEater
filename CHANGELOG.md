@@ -1,3 +1,7 @@
+# DataEater 0.1.7.8 — 13 November 2026
+
+Offline English/Russian OCR for scanned-PDF database creation, optimisation packages and page-level quality provenance. Includes accumulated stable interface improvements: session pin/rename menus and dedicated model/database settings screens. Android version code22; existing signing certificate. Modules and folder sorter remain in the separate Beta app.
+
 # Changelog
 
 ## Source publication — 9 October 2026

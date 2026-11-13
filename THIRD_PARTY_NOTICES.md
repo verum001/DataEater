@@ -6,8 +6,8 @@ Source publication does not redistribute model weights, user documents, PDF manu
 
 - AndroidX (Core, Activity, Lifecycle, Compose and Material): Apache-2.0; https://android.googlesource.com/platform/frameworks/support/+/androidx-main/LICENSE.txt
 - Kotlin and coroutines: Apache-2.0; https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt and https://github.com/Kotlin/kotlinx.coroutines/blob/master/LICENSE.txt
-- Bouncy Castle 1.72, used by PDFBox: MIT-style upstream licence; https://www.bouncycastle.org/about/license/. The upstream licence is included at app/src/main/assets/builder/notices/BouncyCastle-LICENSE.txt. Its TLS classes are not used for DataEater’s network connections.
-- PDFBox-Android 2.0.27.0 (Apache PDFBox/FontBox Android port): Apache-2.0, with included resource notices; https://github.com/TomRoush/PdfBox-Android. Upstream LICENSE.txt and NOTICE.txt are included in APK assets at app/src/main/assets/builder/notices/. Android PDF extraction uses this library; no PyMuPDF/MuPDF is bundled.
+- Bouncy Castle 1.72, used by PDFBox: MIT-style upstream licence; https://www.bouncycastle.org/about/license/. The upstream licence is included at builder/notices/BouncyCastle-LICENSE.txt. Its TLS classes are not used for DataEater’s network connections.
+- PDFBox-Android 2.0.27.0 (Apache PDFBox/FontBox Android port): Apache-2.0, with included resource notices; https://github.com/TomRoush/PdfBox-Android. Upstream LICENSE.txt and NOTICE.txt are included in APK assets at builder/notices/. Android PDF extraction uses this library; no PyMuPDF/MuPDF is bundled.
 - Google LiteRT-LM: Apache-2.0; https://github.com/google-ai-edge/LiteRT-LM/blob/main/LICENSE
 - JUnit, AndroidX Test, Espresso and org.json are test dependencies; they are not shipped in the release app. JUnit uses EPL-1.0; org.json has its own upstream licence.
 
@@ -28,4 +28,14 @@ Every model keeps its publisher's own licence, independently of DataEater. Consu
 
 The invented HF-4500 sample in dataeater/databases/demo.dataeater is CC0-1.0, as declared in its manifest. No real service manual is included. User-created databases have the licences and copyrights of their own source material; the app licence does not grant rights to those documents.
 
-The separately maintained Linux builder is at https://github.com/verum001/DataEater-builder. Its dependencies are not part of the Android app. Public test fixtures contain deliberately disposable keys and synthetic documents; never use those keys for real data.
+## Offline OCR (Beta)
+
+Java/JNI bindings derive from Tesseract4Android 4.9.0 under Apache-2.0. The native
+engine is Tesseract 5.5.3 (Apache-2.0) with Leptonica 1.87.0 (BSD-style licence).
+Sources and legal notices are in `ocr-native/`; immutable upstream revisions and
+local build changes are listed in `ocr-native/UPSTREAM.json`. Native JPEG/PNG
+codecs are not shipped by this module.
+
+Bundled English and Russian OCR data comes from the official `tessdata_fast`
+repository under Apache-2.0. Its licence, revision and SHA-256 hashes are in
+`app/src/main/assets/ocr/`. No Google Play Services or proprietary OCR SDK is used.

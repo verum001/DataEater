@@ -1,3 +1,9 @@
+0.1.7.8 — 13 November 2026
+• Optional offline OCR reads scanned PDF pages during database creation in English, Russian or both.
+• Optimisation ZIP preparation uses the same recognised text and records OCR provenance in quality reports.
+• No AI model, account or network is needed for OCR. Check technical values and layout against the source.
+• Includes the accumulated stable interface improvements: session pin/rename menus and full model/database settings screens.
+
 0.1.7.7 — 21 October 2026
 • Offline preparation reports list included and omitted pages and PDF layout-review needs.
 • Reviewed text highlights changed restrictions, units, numbers, identifiers and numbered steps.

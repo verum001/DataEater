@@ -2,6 +2,7 @@ package com.dataeater.app.builder
 
 import android.app.Application
 import android.net.Uri
+import com.dataeater.app.ocr.OcrLanguage
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.getValue
@@ -34,7 +35,7 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
     data class State(val task: Task = Task.BUILD, val inputs: List<BuilderFiles.Input> = emptyList(), val database: BuilderFiles.Input? = null,
         val fields: Map<String, String> = mapOf("name" to "", "language" to "en", "license" to "unknown", "target" to "700", "batch" to "30000", "expiry" to "never", "creator" to "", "contact" to "", "keyName" to "Creator key"),
         val signingId: String? = null, val secretId: String? = null, val reviewId: String? = null, val keys: List<PublisherVault.Item> = emptyList(),
-        val reviews: List<Review> = emptyList(), val vaultReady: Boolean = false, val busy: Boolean = false, val status: String = "", val result: Result? = null)
+        val reviews: List<Review> = emptyList(), val ocrLanguage: OcrLanguage? = null, val vaultReady: Boolean = false, val busy: Boolean = false, val status: String = "", val result: Result? = null)
     data class Export(val file: File? = null, val item: PublisherVault.Item? = null, val reviewId: String? = null, val prompt: Boolean = false)
     var pendingExport: Export? = null
     var pendingKeyKind = "signing"
@@ -86,6 +87,7 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
             Result("Secret key vault backup restored.", signing = signing, secret = item)
         } catch (error: Throwable) { vault.remove(signing); throw error }
     }
+    fun ocr(language: OcrLanguage?) { if (!state.busy) state = state.copy(ocrLanguage = language) }
     fun field(key: String, value: String) { if (!state.busy) state = state.copy(fields = state.fields + (key to value)) }
     fun task(task: Task) { if (!state.busy) state = state.copy(task = task, result = null, status = "") }
     fun signing(id: String?) { if (!state.busy) state = state.copy(signingId = id) }
@@ -160,7 +162,9 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
                     val documents = mutableListOf<BuilderCore.Document>(); var bytes = 0L
                     for ((index, input) in snapshot.inputs.withIndex()) {
                         check(); progress("Reading document ${index + 1} of ${snapshot.inputs.size}: ${input.name}")
-                        val extracted = files.extract(input, temp); bytes += extracted.pages.sumOf { it.text.toByteArray().size.toLong() }
+                        val extracted = files.extract(input, temp, snapshot.ocrLanguage) { page, total, ocr ->
+                            progress("File ${index + 1} of ${snapshot.inputs.size} · ${if (ocr) "Recognising scanned" else "Reading"} page $page of $total")
+                        }; bytes += extracted.pages.sumOf { it.text.toByteArray().size.toLong() }
                         require(bytes <= BuilderCore.MAX_TEXT_BYTES) { "This collection is too large for the phone. Build smaller databases." }
                         documents.add(extracted)
                     }
@@ -246,7 +250,9 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
                 var bytes = 0L
                 snapshot.inputs.mapIndexed { index, input ->
                     check(); progress("Reading file ${index + 1} of ${snapshot.inputs.size}")
-                    files.extract(input, temp).also {
+                    files.extract(input, temp, snapshot.ocrLanguage) { page, total, ocr ->
+                        progress("File ${index + 1} of ${snapshot.inputs.size} · ${if (ocr) "Recognising scanned" else "Reading"} page $page of $total")
+                    }.also {
                         bytes += it.pages.sumOf { p -> p.text.toByteArray().size.toLong() }
                         require(bytes <= BuilderCore.MAX_TEXT_BYTES) { "Choose a smaller collection of files." }
                     }
@@ -300,7 +306,7 @@ class BuilderViewModel(application: Application) : AndroidViewModel(application)
                     secretItem?.let(vault::remove)
                     throw error
                 }
-                Result("Saved ${target.name} in /sdcard/DataEater.\n$report" + if (encrypted) "\nPrivate database key stored in the secret key vault." else "", target, signing = signingItem, secret = secretItem, quality = quality)
+                Result("Saved ${target.name} in /sdcard/DataEater_beta.\n$report" + if (encrypted) "\nPrivate database key stored in the secret key vault." else "", target, signing = signingItem, secret = secretItem, quality = quality)
             }
         }
     }

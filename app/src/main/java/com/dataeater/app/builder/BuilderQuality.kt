@@ -6,7 +6,15 @@ import org.json.JSONObject
 /** Review hints only; report contains counts/flags and hashes, never source text or keys. */
 object BuilderQuality {
     const val LIMITATION = "Automatic flags are review hints, not technical approval. Check the original pages. Reading order, component ownership and table relationships are not verified. Restriction hints cover English/Russian; other text changes still need review. No AI is required."
-    data class Metric(val page: Int, val characters: Int, val bytes: Int)
+    data class Ocr(val language: String, val status: String, val confidence: Int) {
+        init {
+            require(language in setOf("eng", "rus", "eng+rus") && status in setOf("used", "not_improved", "no_usable_text") && confidence in 0..100) { "Invalid OCR page inventory." }
+        }
+        fun json() = JSONObject().put("engine", "tesseract-5.5.3").put("language", language).put("status", status).put("mean_confidence", confidence)
+    }
+    data class Metric(val page: Int, val characters: Int, val bytes: Int, val ocr: Ocr? = null) {
+        fun json(): JSONObject = JSONObject().put("page", page).put("characters", characters).put("utf8_bytes", bytes).also { item -> ocr?.let { item.put("ocr", it.json()) } }
+    }
     data class Change(val page: Int, val flags: List<String>)
     private const val START = "(?<![\\p{L}\\p{M}\\p{N}_])"
     private const val END = "(?![\\p{L}\\p{M}\\p{N}_])"
@@ -39,11 +47,15 @@ object BuilderQuality {
                 if (pdf) flags.add("pdf_layout_not_verified")
                 flags.addAll(changes[number]?.flags.orEmpty())
             }
+            prior?.ocr?.let { reading ->
+                flags.add("ocr_" + reading.status)
+                flags.add("ocr_accuracy_not_verified")
+            }
             pages.put(JSONObject().put("page", number).put("included", page != null)
                 .put("characters", page?.text?.length ?: prior?.characters ?: JSONObject.NULL)
                 .put("utf8_bytes", page?.text?.toByteArray(Charsets.UTF_8)?.size ?: prior?.bytes ?: JSONObject.NULL)
                 .put("reason", if (page != null) "included" else if (prior != null) "below_100_characters" else "not_in_extracted_text")
-                .put("reading_order", if (pdf) "not_verified" else "not_assessed").put("flags", JSONArray(flags)))
+                .put("reading_order", if (pdf) "not_verified" else "not_assessed").put("flags", JSONArray(flags)).also { prior?.ocr?.let { reading -> it.put("ocr", reading.json()) } })
         }
         return JSONObject().put("format", "dataeater-source-quality").put("version", 1).put("source_id", sid)
             .put("source_sha256", doc.fingerprint).put("total_pages", pages.length()).put("pages", pages)
@@ -58,7 +70,7 @@ object BuilderQuality {
             .put("documents", JSONArray(reports)).put("limitations", LIMITATION)
     }
     fun summary(report: JSONObject): String {
-        var omitted = 0; var changed = 0; var pdf = 0
+        var omitted = 0; var changed = 0; var pdf = 0; var ocr = 0
         val docs = report.getJSONArray("documents")
         for (i in 0 until docs.length()) {
             val pages = docs.getJSONObject(i).getJSONArray("pages")
@@ -67,8 +79,9 @@ object BuilderQuality {
                 val flags = p.getJSONArray("flags").let { a -> (0 until a.length()).map { a.getString(it) } }
                 if ("text_changed" in flags) changed++
                 if ("pdf_layout_not_verified" in flags) pdf++
+                if ("ocr_used" in flags) ocr++
             }
         }
-        return "Preparation quality: $omitted omitted pages; $changed changed pages; $pdf PDF pages need layout review. Automatic checks do not verify technical accuracy."
+        return "Preparation quality: $omitted omitted pages; $changed changed pages; $pdf PDF pages need layout review. Automatic checks do not verify technical accuracy." + if (ocr > 0) " Recognised text was used on $ocr page${if (ocr == 1) "" else "s"}; check it against the original." else ""
     }
 }

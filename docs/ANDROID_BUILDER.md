@@ -1,21 +1,24 @@
 # Create databases on Android
 
-Open **Settings → Create database**. Building and encryption run locally; no account or online model is needed.
+Open **Settings → Database settings → Create database**. Building and encryption run locally; no account or online model is needed.
 
 ## Create a database
 
 1. Enter a name and tap **Choose files** to select PDF, text or Markdown documents.
 2. Turn **Encrypt** on for a private database, or leave it off for an open database.
 3. Turn **Optimise with LLM** on to prepare a review ZIP, or leave it off to build directly.
-4. Tap **Create**. The full-screen status explains that the result is saved in `/sdcard/DataEater`. Tap **Continue in background** to leave the progress screen.
+4. For scanned PDFs, optionally enable **Read scanned PDFs (OCR)** and choose English, Russian or both.
+5. Tap **Create**. The full-screen status explains that the result is saved in `/sdcard/DataEater_beta`. Tap **Continue in background** to leave the progress screen.
 
 The progress bar indicates work rather than a percentage. Cancel stops at a safe checkpoint; complex PDF pages may take time before cancellation is acknowledged. Existing files are preserved. Preparation continues while the activity is closed, but does not automatically restart after Android terminates the process.
 
-The builder extracts text into searchable passages. It does not train a model or reconstruct diagrams. Scanned PDFs need external OCR. Reading order and tables can be imperfect even in selectable-text PDFs. Verify values, units, warnings and page references against the originals before sharing a database.
+The builder extracts text into searchable passages. It does not train a model or reconstruct diagrams. In Beta, optional offline OCR reads pages with little selectable text. It checks every PDF page and needs no AI model. Quality reports mark recognised pages and confidence; these are review hints. See [OCR limits and accuracy](OCR.md). Reading order and tables can be imperfect even in selectable-text PDFs. Verify values, units, warnings and page references against the originals before sharing a database.
 
 Source text is limited to 12 MB per collection and 256 MB per input file. Split larger collections or use the [Linux builder](BUILDER.md). Retained passages preserve PDF page positions, which can differ from printed page labels. Android extraction uses PDFBox and may produce different passage boundaries from the Linux builder.
 
 ## Optimise with LLM
+
+The same optional OCR extraction is used for optimisation. Continue after optimisation uses the reviewed text without running OCR again. OCR details stay in page metrics.
 
 Create with **Optimise with LLM** enabled saves a ZIP containing unchanged source files in `sources/`, parsed source text in `original/`, editable return text in `reviewed/`, review metadata, notes and `LLM_PROMPT.txt`.
 

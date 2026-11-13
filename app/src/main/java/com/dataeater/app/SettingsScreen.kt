@@ -1,5 +1,6 @@
 package com.dataeater.app
 
+import com.dataeater.app.ui.theme.DataEaterButton
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
@@ -48,6 +49,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,39 +80,7 @@ import com.dataeater.app.ui.theme.DataEaterCard
 import com.dataeater.app.ui.theme.TextSize
 import com.dataeater.app.ui.theme.DataEaterGap
 
-/**
- * The settings screen: what is loaded, what is open, and where it runs.
- *
- * WHY TWO SEPARATE AREAS AT THE TOP
- * ---------------------------------
- * The mockups show model selection and database selection as two distinct
- * areas, each of which opens its own list when tapped. They used to be one
- * card with a row for the database, a row for the model, and a permanent list
- * of models underneath — so the screen was always tall, and the database list
- * was somewhere else entirely, reached by leaving settings.
- *
- * Now each is its own card. Both start collapsed: one line saying what is
- * currently chosen. Tapping opens that area and shows its list, with the
- * action button on the right of each row. Only one is open at a time, because
- * two open lists on a phone means a long scroll to find anything.
- *
- * WHY THE LISTS ARE INSIDE THE CARD AND NOT A SEPARATE SCREEN
- * -----------------------------------------------------------
- * Choosing a model and choosing a database are both small acts, and both are
- * things a user does while setting up. Leaving the screen to make the choice
- * and coming back to see the result is three taps instead of one, and it is
- * how the two settings came to disagree with each other before.
- *
- * WHY A MODEL'S SIZE AND VERDICT STILL APPEAR
- * -------------------------------------------
- * Two models can differ by more than a gigabyte and one of them may not fit in
- * this phone at all. That has to be visible *before* the button is pressed,
- * not as a failure afterwards.
- *
- * WHAT IS NOT HERE, AND WHY
- * -------------------------
- * The model catalogue offers explicit downloads; inference remains on device.
- */
+/** Settings navigation and model/database controls. */
 
 /** Everything the screen needs, gathered in one place. */
 data class SettingsState(
@@ -188,25 +160,30 @@ data class SettingsState(
     val onDownloadDatabases: () -> Unit = {},
 )
 
-/** Which of the two areas at the top is open. */
-private enum class OpenArea { NONE, MODEL, DATABASE }
+private enum class SettingsPage(val title: String) { MAIN("Settings"), MODEL("Model settings"), MANAGE_MODELS("Manage models"), DATABASE("Database settings"), MANAGE_DATABASES("Manage databases") }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(state: SettingsState, onBack: () -> Unit) {
-    // Only one area open at a time, for the reason given above.
-    var open by remember { mutableStateOf(OpenArea.NONE) }
+    var page by rememberSaveable { mutableStateOf(SettingsPage.MAIN) }
+    fun goBack() { page = when (page) {
+        SettingsPage.MANAGE_MODELS -> SettingsPage.MODEL
+        SettingsPage.MANAGE_DATABASES -> SettingsPage.DATABASE
+        else -> SettingsPage.MAIN
+    } }
+    BackHandler(enabled = page != SettingsPage.MAIN) { goBack() }
     var getModels by remember { mutableStateOf(false) }
     if (getModels) ModelDownloadDialog(ModelDownloadUiState(
         state.models, state.download, state.deviceInfo, state.isBusy, state.hasStorageAccess,
         state.onDownloadModel, state.onCancelDownload, state.onLoadModel, state.loadedModelName), onDismiss = { getModels = false })
 
+    val pageScroll = key(page) { rememberScrollState() }
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(page.title) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { if (page == SettingsPage.MAIN) onBack() else goBack() }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
@@ -220,41 +197,36 @@ fun SettingsScreen(state: SettingsState, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(pageScroll)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(DataEaterGap),
         ) {
-            // --- model and database preferences -------------------------
-            OpenRouterCard(state.openRouter, state.onlineActive, state.isBusy || state.isDatabaseBusy,
-                state.onUseOpenRouter, state.onUseLocal, state.onRemoveOpenRouterKey)
-            ReplyBehaviorCard(state.replyBehavior, state.isBusy || state.isDatabaseBusy, state.onReplyBehaviorChange)
-            ModelSelectionCard(
-                state = state,
-                isOpen = open == OpenArea.MODEL,
-                onDownloadModels = { getModels = true },
-                onToggle = {
-                    open = if (open == OpenArea.MODEL) OpenArea.NONE else OpenArea.MODEL
-                },
-            )
-
-            DatabaseSelectionCard(
-                state = state,
-                isOpen = open == OpenArea.DATABASE,
-                onToggle = {
-                    open =
-                        if (open == OpenArea.DATABASE) OpenArea.NONE else OpenArea.DATABASE
-                },
-            )
-
+            when (page) {
+                SettingsPage.MODEL -> {
+                    SettingsDestination("Manage models", state.loadedModelName ?: "No model loaded") { page = SettingsPage.MANAGE_MODELS }
+                    OpenRouterCard(state.openRouter, state.onlineActive, state.isBusy || state.isDatabaseBusy,
+                        state.onUseOpenRouter, state.onUseLocal, state.onRemoveOpenRouterKey)
+                    ReplyBehaviorCard(state.replyBehavior, state.isBusy || state.isDatabaseBusy, state.onReplyBehaviorChange)
+                    ProcessorCard(state)
+                    StatusCard(state)
+                }
+                SettingsPage.MANAGE_MODELS -> ModelManagementContent(state, onDownloadModels = { getModels = true })
+                SettingsPage.DATABASE -> {
+                    SettingsDestination("Manage databases", state.databaseName) { page = SettingsPage.MANAGE_DATABASES }
+                    DataEaterButton(onClick = state.onCreateDatabase, enabled = !state.isBusy && !state.isDatabaseBusy,
+                        modifier = Modifier.fillMaxWidth()) { Text("Create database") }
+                    Text("Create databases, prepare optimisation packages and manage private database keys.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                SettingsPage.MANAGE_DATABASES -> DatabaseManagementContent(state)
+                SettingsPage.MAIN -> {
+                    SettingsDestination("Model settings", "Manage models, AI connection and reply behaviour") { page = SettingsPage.MODEL }
+                    SettingsDestination("Database settings", "Manage databases, creation and private keys") { page = SettingsPage.DATABASE }
             ExecutionCard(state)
-            StatusCard(state)
-            Button(
-                onClick = state.onCreateDatabase,
-                enabled = !state.isBusy && !state.isDatabaseBusy,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            ) { Text("Create database", modifier = Modifier.padding(vertical = 8.dp)) }
-            Button(onClick = state.onBenchmark, enabled = !state.isBusy && !state.isDatabaseBusy,
-                modifier = Modifier.fillMaxWidth()) { Text("Start benchmark", modifier = Modifier.padding(vertical = 8.dp)) }
+            DataEaterButton(onClick = state.onBenchmark, enabled = !state.isBusy && !state.isDatabaseBusy,
+                modifier = Modifier.fillMaxWidth()) { Text("Start benchmark") }
+                }
+            }
         }
     }
 }
@@ -263,62 +235,28 @@ fun SettingsScreen(state: SettingsState, onBack: () -> Unit) {
 // 1. Model selection
 // ---------------------------------------------------------------------------
 
-/**
- * The model area.
- *
- * Collapsed: one row saying which model is loaded, or that none is.
- * Open: the model list with Load and Delete actions. Deletion requires confirmation.
- */
+/** A navigation row opens a full screen, with no inline expansion. */
 @Composable
-private fun ModelSelectionCard(
-    state: SettingsState,
-    isOpen: Boolean,
-    onDownloadModels: () -> Unit,
-    onToggle: () -> Unit,
-) {
-    DataEaterCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                // The card grows and shrinks with its list, rather than
-                // jumping, so the eye stays on the row that was tapped.
-                .animateContentSize(tween(200))
-        ) {
-            SectionTitle("Model Selection")
-
-            ChooserHeader(
-                icon = Icons.Filled.Build,
-                label = "Model",
-                value = state.loadedModelName ?: "None loaded",
-                detail = if (state.loadedModelName == null) {
-                    "Tap to choose one"
-                } else {
-                    "Tap to change"
-                },
-                isOpen = isOpen,
-                onClick = onToggle,
-            )
-
-            ExpandedArea(visible = isOpen) {
-                OutlinedButton(onClick = onDownloadModels, modifier = Modifier.fillMaxWidth()) {
-                    Text("Download models")
-                }
-                when {
-                    !state.hasStorageAccess -> PermissionNeeded(state)
-                    state.models.isEmpty() -> NoModelsYet(state)
-                    else -> LoadableModels(state)
-                }
-
-                if (state.download.active) {
-                    LinearProgressIndicator(progress = { state.download.progress }, modifier = Modifier.fillMaxWidth())
-                    Text(state.download.message, style = MaterialTheme.typography.bodySmall)
-                }
-                if (state.aiStatus.isNotBlank()) {
-                    StatusLine(state.aiStatus, isRunning = state.isModelBusy)
-                }
-            }
-        }
+private fun SettingsDestination(title: String, detail: String, onClick: () -> Unit) {
+    DataEaterButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Text(title, modifier = Modifier.weight(1f))
+        Text("›", modifier = Modifier.padding(start = 8.dp))
     }
+}
+
+@Composable
+private fun ModelManagementContent(state: SettingsState, onDownloadModels: () -> Unit) {
+    DataEaterButton(onClick = onDownloadModels, modifier = Modifier.fillMaxWidth()) { Text("Download models") }
+    when {
+        !state.hasStorageAccess -> PermissionNeeded(state)
+        state.models.isEmpty() -> NoModelsYet(state)
+        else -> LoadableModels(state)
+    }
+    if (state.download.active) {
+        LinearProgressIndicator(progress = { state.download.progress }, modifier = Modifier.fillMaxWidth())
+        Text(state.download.message, style = MaterialTheme.typography.bodySmall)
+    }
+    if (state.aiStatus.isNotBlank()) StatusLine(state.aiStatus, isRunning = state.isModelBusy)
 }
 
 @Composable
@@ -331,8 +269,8 @@ private fun PermissionNeeded(state: SettingsState) {
         modifier = Modifier.padding(top = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Button(onClick = state.onGrantStorageAccess, enabled = !state.isBusy) { Text("Grant access") }
-        OutlinedButton(onClick = state.onRescanModels) {
+        DataEaterButton(onClick = state.onGrantStorageAccess, enabled = !state.isBusy) { Text("Grant access") }
+        DataEaterButton(onClick = state.onRescanModels) {
             Text("I have granted it")
         }
     }
@@ -350,7 +288,7 @@ private fun NoModelsYet(state: SettingsState) {
         style = MaterialTheme.typography.bodySmall,
         fontFamily = FontFamily.Monospace,
     )
-    OutlinedButton(
+    DataEaterButton(
         onClick = state.onRescanModels,
         modifier = Modifier.padding(top = 8.dp),
     ) { Text("Scan again") }
@@ -381,7 +319,7 @@ private fun LoadableModels(state: SettingsState) {
                 )
             },
             confirmButton = {
-                TextButton(
+                DataEaterButton(
                     enabled = !state.isBusy,
                     onClick = {
                         pendingDelete = null
@@ -390,7 +328,7 @@ private fun LoadableModels(state: SettingsState) {
                 ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+                DataEaterButton(onClick = { pendingDelete = null }) { Text("Cancel") }
             },
         )
     }
@@ -460,12 +398,12 @@ private fun LoadableModels(state: SettingsState) {
                             modifier = Modifier.size(20.dp),
                         )
                     } else {
-                        OutlinedButton(
+                        DataEaterButton(
                             onClick = { state.onLoadModel(model) },
                             enabled = !state.isBusy && canLoad,
                         ) { Text("Load") }
                     }
-                    TextButton(
+                    DataEaterButton(
                         onClick = { pendingDelete = model },
                         enabled = !state.isBusy,
                     ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
@@ -492,11 +430,7 @@ private fun LoadableModels(state: SettingsState) {
  * Only database files in the visible folder are offered.
  */
 @Composable
-private fun DatabaseSelectionCard(
-    state: SettingsState,
-    isOpen: Boolean,
-    onToggle: () -> Unit,
-) {
+private fun DatabaseManagementContent(state: SettingsState) {
     var pendingDelete by remember { mutableStateOf<DatabaseFiles.DatabaseFile?>(null) }
     pendingDelete?.let { database ->
         AlertDialog(
@@ -512,7 +446,7 @@ private fun DatabaseSelectionCard(
                 )
             },
             confirmButton = {
-                TextButton(
+                DataEaterButton(
                     enabled = !state.isBusy,
                     onClick = {
                         pendingDelete = null
@@ -521,82 +455,62 @@ private fun DatabaseSelectionCard(
                 ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+                DataEaterButton(onClick = { pendingDelete = null }) { Text("Cancel") }
             },
         )
     }
-    DataEaterCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .animateContentSize(tween(200))
-        ) {
-            SectionTitle("Database Selection")
-
-            ChooserHeader(
-                icon = Icons.AutoMirrored.Filled.List,
-                label = "Database",
-                value = state.databaseName,
-                detail = state.databaseDetail,
-                // A locked database in the caution colour: it is chosen, but
-                // not open, and the two look different on purpose.
-                valueColour = if (state.databaseIsLocked) {
-                    MaterialTheme.colorScheme.tertiary
-                } else {
-                    MaterialTheme.colorScheme.primary
-                },
-                isOpen = isOpen,
-                onClick = onToggle,
-            )
-
-            ExpandedArea(visible = isOpen) {
-                OutlinedButton(onClick = state.onDownloadDatabases,
-                    enabled = !state.isBusy && !state.isDatabaseBusy,
-                    modifier = Modifier.fillMaxWidth()) { Text("Download databases") }
-                if (!state.hasStorageAccess) PermissionNeeded(state)
-                if (state.databases.isNotEmpty()) {
-                    OutlinedButton(
-                        onClick = { state.onChooseDatabase(com.dataeater.app.data.DatabaseChoice.ALL) },
-                        enabled = !state.isBusy,
-                    ) { Text(com.dataeater.app.data.DatabaseChoice.ALL) }
-                    Text("Choose the databases to search together. Locked files need a valid Unlock Code.")
-                }
-                for (database in state.databases) {
-                    DatabaseRow(
-                        name = database.displayName,
-                        detail = "${database.sizeInKilobytes} KB",
-                        isSelected = state.selectedDatabase == database.displayName,
-                        status = state.lockStatuses[database.displayName],
-                        // A file that cannot be read at all is not offered:
-                        // choosing it would produce a database screen with
-                        // nothing behind it.
-                        enabled = !state.isBusy && state.lockStatuses[database.displayName] !is
-                            DatabaseLock.Status.Unreadable,
-                        canDelete = !state.isBusy,
-                        onDelete = { pendingDelete = database },
-                        onChoose = { state.onChooseDatabase(database.displayName) },
-                    )
-                }
-
-                if (state.hasStorageAccess && state.databases.isEmpty()) {
-                    Text(
-                        text = "No .dataeater files found. Put them in " +
-                            "${com.dataeater.app.data.DatabaseFiles.folder().absolutePath}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                OutlinedButton(
-                    onClick = state.onRescanDatabases,
-                    enabled = !state.isBusy && state.hasStorageAccess,
-                    modifier = Modifier.padding(top = 10.dp),
-                ) { Text("Scan again") }
-                if (state.databaseStatus.isNotBlank()) {
-                    StatusLine(state.databaseStatus, isRunning = state.isDatabaseBusy)
-                }
-            }
+    DataEaterCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Selected database", style = MaterialTheme.typography.labelLarge)
+            Text(state.databaseName, style = MaterialTheme.typography.titleMedium,
+                color = if (state.databaseIsLocked) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary)
+            Text(state.databaseDetail, style = MaterialTheme.typography.bodySmall)
         }
+    }
+    DataEaterButton(onClick = state.onDownloadDatabases,
+        enabled = !state.isBusy && !state.isDatabaseBusy,
+        modifier = Modifier.fillMaxWidth()) { Text("Download databases") }
+    if (!state.hasStorageAccess) PermissionNeeded(state)
+    if (state.databases.isNotEmpty()) {
+        DataEaterButton(
+            onClick = { state.onChooseDatabase(com.dataeater.app.data.DatabaseChoice.ALL) },
+            enabled = !state.isBusy,
+        ) { Text(com.dataeater.app.data.DatabaseChoice.ALL) }
+        Text("Choose the databases to search together. Locked files need a valid Unlock Code.")
+    }
+    for (database in state.databases) {
+        DatabaseRow(
+            name = database.displayName,
+            detail = "${database.sizeInKilobytes} KB",
+            isSelected = state.selectedDatabase == database.displayName,
+            status = state.lockStatuses[database.displayName],
+            // A file that cannot be read at all is not offered:
+            // choosing it would produce a database screen with
+            // nothing behind it.
+            enabled = !state.isBusy && state.lockStatuses[database.displayName] !is
+                DatabaseLock.Status.Unreadable,
+            canDelete = !state.isBusy,
+            onDelete = { pendingDelete = database },
+            onChoose = { state.onChooseDatabase(database.displayName) },
+        )
+    }
+
+    if (state.hasStorageAccess && state.databases.isEmpty()) {
+        Text(
+            text = "No .dataeater files found. Put them in " +
+                "${com.dataeater.app.data.DatabaseFiles.folder().absolutePath}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+
+    DataEaterButton(
+        onClick = state.onRescanDatabases,
+        enabled = !state.isBusy && state.hasStorageAccess,
+        modifier = Modifier.padding(top = 10.dp),
+    ) { Text("Scan again") }
+    if (state.databaseStatus.isNotBlank()) {
+        StatusLine(state.databaseStatus, isRunning = state.isDatabaseBusy)
     }
 }
 
@@ -663,9 +577,9 @@ private fun DatabaseRow(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                else -> OutlinedButton(onClick = onChoose) { Text("Use") }
+                else -> DataEaterButton(onClick = onChoose) { Text("Use") }
             }
-            TextButton(onClick = onDelete, enabled = canDelete) {
+            DataEaterButton(onClick = onDelete, enabled = canDelete) {
                 Text("Delete", color = MaterialTheme.colorScheme.error)
             }
         }
@@ -702,16 +616,11 @@ private fun ExpandedArea(
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun ExecutionCard(state: SettingsState) {
+private fun ProcessorCard(state: SettingsState) {
     DataEaterCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            SectionTitle("Execution Environment")
+            SectionTitle("Processor")
             if (!state.onlineActive) {
-            Text(
-                text = "Processor",
-                modifier = Modifier.padding(top = 4.dp),
-                style = MaterialTheme.typography.labelLarge,
-            )
 
             // A segmented pair rather than two loose buttons: the choice is
             // between two options, and they should look like one control.
@@ -749,6 +658,15 @@ private fun ExecutionCard(state: SettingsState) {
 
             }
 
+            else Text("Online AI runs on the provider's servers.", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+private fun ExecutionCard(state: SettingsState) {
+    DataEaterCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
             // --- appearance, directly under the processor ---------------
             Text(text = "Appearance", style = MaterialTheme.typography.labelLarge)
 
@@ -815,11 +733,12 @@ private fun ExecutionCard(state: SettingsState) {
 private fun AdaptiveChoices(labels: List<String>, selectedIndex: Int, onChoose: (Int) -> Unit) {
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
-    val style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
-    val textWidth = labels.maxOf { measurer.measure(it, style).size.width }
-    val minimumWidth = with(density) { textWidth.toDp() } + 8.dp
+    val style = MaterialTheme.typography.labelLarge
+    val textWidth = labels.maxOf { measurer.measure(it, style, softWrap = false, maxLines = 1).size.width }
+    // Match the shared button's 12 dp padding on each side and minimum width.
+    val minimumWidth = maxOf(88.dp, with(density) { textWidth.toDp() } + 26.dp)
     BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-        val columns = ((maxWidth.value + 8f) / (minimumWidth.value.coerceAtLeast(48f) + 8f))
+        val columns = ((maxWidth.value + 8f) / (minimumWidth.value + 8f))
             .toInt().coerceIn(1, labels.size)
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             labels.indices.toList().chunked(columns).forEach { row ->
@@ -843,40 +762,8 @@ private fun ProcessorChoice(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.large,
-        color = if (selected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerHighest
-        },
-        contentColor = if (selected) {
-            MaterialTheme.colorScheme.onPrimary
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
-        modifier = modifier,
-    ) {
-        Text(
-            text = label,
-            // bodyMedium, not titleMedium.
-            //
-            // Four of these sit side by side, and at the largest text size a
-            // 16 sp label overflowed its button and wrapped to two lines —
-            // "Defaul / t". The row grew taller than the cards around it and
-            // stopped reading as one control.
-            style = MaterialTheme.typography.bodyMedium,
-            // One line always: a size label split across two lines is worse
-            // than a slightly smaller one.
-            maxLines = 1,
-            softWrap = false,
-            textAlign = TextAlign.Center,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 14.dp),
-        )
+    DataEaterButton(onClick = onClick, selected = selected, modifier = modifier) {
+        Text(label, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false)
     }
 }
 

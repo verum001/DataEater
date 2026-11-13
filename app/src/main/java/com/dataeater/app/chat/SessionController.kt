@@ -59,7 +59,7 @@ class SessionController(
         // reopening the app returns the user to where they were. A chat app
         // that discards yesterday's conversation on every launch would be
         // unusable.
-        val restored = existing.firstOrNull() ?: run {
+        val restored = existing.maxWithOrNull(compareBy<Session> { it.updatedAt }.thenBy { it.id }) ?: run {
             val created = create(existing)
             sessions = listOf(created)
             created
@@ -191,6 +191,25 @@ class SessionController(
         return active ?: replacement
     }
 
+    /** Persist metadata without switching conversations or changing chat recency. */
+    fun rename(id: String, title: String): Boolean {
+        val clean = title.trim()
+        if (clean.isEmpty() || clean.length > 100 || clean.any { it.isISOControl() }) return false
+        return editMetadata(id) { it.copy(title = clean) }
+    }
+
+    fun setPinned(id: String, pinned: Boolean): Boolean =
+        editMetadata(id) { it.copy(pinned = pinned) }
+
+    private fun editMetadata(id: String, update: (Session) -> Session): Boolean {
+        val existing = sessions.firstOrNull { it.id == id } ?: return false
+        val changed = update(existing)
+        if (!repository.save(changed)) return false
+        sessions = sessions.map { if (it.id == id) changed else it }.sortedForDisplay()
+        if (active?.id == id) active = changed
+        return true
+    }
+
     /** Saves and updates the in-memory copy. Returns the saved session. */
     private fun commit(session: Session, persist: Boolean = true): Session {
         active = session
@@ -237,7 +256,8 @@ class SessionController(
      */
     private fun List<Session>.sortedForDisplay(): List<Session> =
         sortedWith(
-            compareByDescending<Session> { it.updatedAt }
+            compareByDescending<Session> { it.pinned }
+                .thenByDescending { it.updatedAt }
                 .thenByDescending { it.id }
         )
 }

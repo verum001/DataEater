@@ -1,5 +1,6 @@
 package com.dataeater.app.ui
 
+import com.dataeater.app.ui.theme.DataEaterButton
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -30,7 +31,7 @@ fun DatabaseDownloadDialog(catalog: DatabaseDownloads.CatalogState, download: Da
                 key(entry.id) {
                     var expanded by rememberSaveable { mutableStateOf(false) }
                     if (entry.description.isNotBlank()) {
-                        TextButton(onClick = { expanded = !expanded }, modifier = Modifier.semantics {
+                        DataEaterButton(onClick = { expanded = !expanded }, modifier = Modifier.semantics {
                             stateDescription = if (expanded) "Expanded" else "Collapsed"
                         }) { Text(if (expanded) "Hide description" else "Show description") }
                         if (expanded) Text(entry.description, style = MaterialTheme.typography.bodySmall)
@@ -40,20 +41,20 @@ fun DatabaseDownloadDialog(catalog: DatabaseDownloads.CatalogState, download: Da
                     selected && download.active -> {
                         LinearProgressIndicator(progress = { download.progress }, modifier = Modifier.fillMaxWidth())
                         Text(download.message)
-                        TextButton(onClick = onCancel) { Text("Cancel") }
+                        DataEaterButton(onClick = onCancel) { Text("Cancel") }
                     }
                     installed -> Text("Installed", color = MaterialTheme.colorScheme.primary)
                     else -> {
                         if (selected) Text(download.message)
-                        OutlinedButton(onClick = { onDownload(entry) }, enabled = !download.active && !catalog.loading) {
+                        DataEaterButton(onClick = { onDownload(entry) }, enabled = !download.active && !catalog.loading) {
                             Text(if (!storage) "Grant storage access" else if (selected) "Retry" else "Download")
                         }
                     }
                 }
                 HorizontalDivider()
             }
-            TextButton(onClick = onRefresh, enabled = !catalog.loading) { Text("Refresh") }
+            DataEaterButton(onClick = onRefresh, enabled = !catalog.loading) { Text("Refresh") }
             Text("Saved in the DataEater folder. Manuals retain their own terms. Downloads may use mobile data.", style = MaterialTheme.typography.bodySmall)
         }
-    }, confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } })
+    }, confirmButton = { DataEaterButton(onClick = onDismiss) { Text("Done") } })
 }

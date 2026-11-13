@@ -1,5 +1,6 @@
 package com.dataeater.app.ui
 
+import com.dataeater.app.ui.theme.DataEaterButton
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -18,6 +19,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -44,7 +46,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.filled.Check
@@ -278,7 +279,7 @@ private fun Conversation(
             item { Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Add AI to start chatting", style = MaterialTheme.typography.titleMedium)
                 Text("Download once. Your chats stay on this phone.", style = MaterialTheme.typography.bodyMedium)
-                Button(onClick = onDownloadAi, modifier = Modifier.fillMaxWidth()) { Text("Download AI") }
+                DataEaterButton(onClick = onDownloadAi, modifier = Modifier.fillMaxWidth()) { Text("Download AI") }
                 if (download.active) {
                     androidx.compose.material3.LinearProgressIndicator(progress = { download.progress }, modifier = Modifier.fillMaxWidth())
                     Text(download.message, style = MaterialTheme.typography.bodySmall)
@@ -637,7 +638,7 @@ private fun SendButton(enabled: Boolean, onClick: () -> Unit) {
     }
 }
 
-/** Database selection on the left, model in the middle, labelled database switch on the right. */
+/** Model selection on the left, database next, labelled database switch on the right. */
 @Composable
 private fun ControlRow(
     models: List<String>,
@@ -655,8 +656,8 @@ private fun ControlRow(
         val wrap = maxWidth < 320.dp || LocalDensity.current.fontScale > 1.5f
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                DatabasePicker(databases, databaseName, useDatabase, onChooseDatabase, onToggleDatabase, Modifier.weight(1f), showToggle = false)
                 ModelPicker(models, selectedModel, onChooseModel, Modifier.weight(1f), onOpenOnlineModels)
+                DatabasePicker(databases, databaseName, useDatabase, onChooseDatabase, onToggleDatabase, Modifier.weight(1f), showToggle = false)
                 if (!wrap) {
                     Text("DB: ", style = MaterialTheme.typography.labelLarge)
                     Switch(checked = useDatabase, onCheckedChange = onToggleDatabase,
@@ -911,11 +912,37 @@ fun SessionDrawer(
     visible: Boolean, sessions: List<Session>, activeId: String?,
     onSelect: (String) -> Unit, onNewSession: () -> Unit,
     onDelete: (String) -> Boolean, deletionEnabled: Boolean,
+    onPin: (String, Boolean) -> Boolean = { _, _ -> false },
+    onRename: (String, String) -> Boolean = { _, _ -> false },
     onOpen: () -> Unit, onClose: () -> Unit, onOpenHelp: () -> Unit,
     content: @Composable () -> Unit,
 ) {
     var pendingDeletion by remember { mutableStateOf<Session?>(null) }
     var deletionFailed by remember { mutableStateOf(false) }
+    var renaming by remember { mutableStateOf<Session?>(null) }
+    var renameText by remember { mutableStateOf("") }
+    var metadataError by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(visible) { if (!visible) { renaming = null; metadataError = null } }
+    renaming?.let { selected ->
+        AlertDialog(
+            onDismissRequest = { renaming = null },
+            title = { Text("Rename session") },
+            text = { Column {
+                OutlinedTextField(value = renameText, onValueChange = { if (it.length <= 100) renameText = it; metadataError = null },
+                    label = { Text("Name") }, singleLine = true, isError = metadataError != null)
+                metadataError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            } },
+            confirmButton = { DataEaterButton(enabled = deletionEnabled && renameText.isNotBlank(), onClick = {
+                if (onRename(selected.id, renameText)) renaming = null
+                else metadataError = "Couldn’t rename this session. Please try again."
+            }) { Text("Save") } },
+            dismissButton = { DataEaterButton(onClick = { renaming = null }) { Text("Cancel") } },
+        )
+    }
+    if (renaming == null && metadataError != null) AlertDialog(
+        onDismissRequest = { metadataError = null }, title = { Text("Couldn’t update session") },
+        text = { Text(metadataError!!) }, confirmButton = { DataEaterButton(onClick = { metadataError = null }) { Text("OK") } },
+    )
     LaunchedEffect(visible) { if (!visible) pendingDeletion = null }
     pendingDeletion?.let { selected ->
         AlertDialog(
@@ -924,11 +951,11 @@ fun SessionDrawer(
             text = { Text(if (deletionFailed) "Couldn’t delete this session. Please try again."
                 else "Delete “${selected.title}” and all its messages? This cannot be undone.") },
             confirmButton = {
-                TextButton(enabled = deletionEnabled, onClick = {
+                DataEaterButton(enabled = deletionEnabled, onClick = {
                     if (onDelete(selected.id)) pendingDeletion = null else deletionFailed = true
                 }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { pendingDeletion = null }) { Text("Cancel") } },
+            dismissButton = { DataEaterButton(onClick = { pendingDeletion = null }) { Text("Cancel") } },
         )
     }
     val drawer = rememberDrawerState(if (visible) DrawerValue.Open else DrawerValue.Closed)
@@ -951,7 +978,7 @@ fun SessionDrawer(
                         Text("Sessions", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(start = 20.dp, top = 8.dp))
                         Spacer(Modifier.height(10.dp))
-                        Button(onClick = onNewSession, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(min = 48.dp)) {
+                        DataEaterButton(onClick = onNewSession, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                             Icon(Icons.Filled.Add, contentDescription = null)
                             Spacer(Modifier.width(8.dp));Text("New session")
                         }
@@ -964,6 +991,8 @@ fun SessionDrawer(
                                 SessionRow(session, session.id == activeId,
                                     onClick = { onSelect(session.id) },
                                     deletionEnabled = deletionEnabled,
+                                    onPin = { if (!onPin(session.id, !session.pinned)) metadataError = "Couldn’t save the pin change. Please try again." },
+                                    onRename = { renameText = session.title; metadataError = null; renaming = session },
                                     onDelete = { deletionFailed = false; pendingDeletion = session },
                                 )
                             }
@@ -989,7 +1018,7 @@ private fun SessionRow(
     session: Session,
     isActive: Boolean,
     onClick: () -> Unit,
-    deletionEnabled: Boolean, onDelete: () -> Unit,
+    deletionEnabled: Boolean, onDelete: () -> Unit, onPin: () -> Unit, onRename: () -> Unit,
 ) {
     val background = if (isActive) {
         MaterialTheme.colorScheme.primaryContainer
@@ -1002,14 +1031,25 @@ private fun SessionRow(
         MaterialTheme.colorScheme.onSurface
     }
 
+    var showMenu by remember(session.id) { mutableStateOf(false) }
     Surface(
-        onClick = onClick,
         color = background,
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp),
+            .heightIn(min = 56.dp)
+            .testTag("session-row-${session.id}")
+            .combinedClickable(onClick = onClick, onLongClick = { showMenu = true }, onLongClickLabel = "Session options"),
     ) {
+        Box {
+        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+            DropdownMenuItem(text = { Text(if (session.pinned) "Unpin" else "Pin") }, enabled = deletionEnabled,
+                onClick = { showMenu = false; onPin() })
+            DropdownMenuItem(text = { Text("Rename") }, enabled = deletionEnabled,
+                onClick = { showMenu = false; onRename() })
+            DropdownMenuItem(text = { Text("Remove", color = MaterialTheme.colorScheme.error) }, enabled = deletionEnabled,
+                onClick = { showMenu = false; onDelete() })
+        }
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -1029,9 +1069,9 @@ private fun SessionRow(
                     maxLines = 1,
                 )
             }
-            IconButton(onClick = onDelete, enabled = deletionEnabled,
-                modifier = Modifier.testTag("delete-session-${session.id}")) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete ${session.title}", tint = textColour)
+            if (session.pinned) {
+                Text("Pinned", style = MaterialTheme.typography.labelSmall, color = textColour,
+                    modifier = Modifier.padding(horizontal = 6.dp))
             }
             if (isActive) {
                 Icon(
@@ -1042,5 +1082,6 @@ private fun SessionRow(
                 )
             }
         }
+    }
     }
 }

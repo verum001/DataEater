@@ -5,6 +5,7 @@ plugins {
 
 android {
     namespace = "com.dataeater.app"
+    ndkVersion = "27.2.12479018"
     testBuildType = providers.gradleProperty("deviceTestBuildType").getOrElse("research")
     compileSdk {
         version = release(37)
@@ -14,8 +15,8 @@ android {
         applicationId = "com.dataeater.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 21
-        versionName = "0.1.7.7"
+        versionCode = 22
+        versionName = "0.1.7.8"
         // LiteRT-LM ships native inference only for these 64-bit ABIs.
         // Avoid an installable 32-bit APK that would fail when loading AI.
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
@@ -47,6 +48,8 @@ android {
 }
 
 dependencies {
+    // Offline OCR built from pinned source; no downloaded native binaries.
+    implementation(project(":ocr-native"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)

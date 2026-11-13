@@ -1,5 +1,6 @@
 package com.dataeater.app.ui
 
+import com.dataeater.app.ui.theme.DataEaterButton
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -20,16 +21,16 @@ fun MultipleDatabaseDialog(names: List<String>, current: Set<String>, busy: Bool
         Scaffold(topBar = { TopAppBar(title = { Text("Search in several databases") }) },
             bottomBar = {
                 Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                    Button(onClick = { onApply(selected) }, enabled = selected.isNotEmpty() && !busy,
+                    DataEaterButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                    DataEaterButton(onClick = { onApply(selected) }, enabled = selected.isNotEmpty() && !busy,
                         modifier = Modifier.weight(1f)) { Text("Search selected") }
                 }
             }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp)) {
                 Text("Choose the manuals to search together. Locked databases need a saved valid Unlock Code.")
                 Row {
-                    TextButton(onClick = { selected = names.toSet() }, enabled = !busy) { Text("Select all") }
-                    TextButton(onClick = { selected = emptySet() }, enabled = !busy) { Text("Clear") }
+                    DataEaterButton(onClick = { selected = names.toSet() }, enabled = !busy) { Text("Select all") }
+                    DataEaterButton(onClick = { selected = emptySet() }, enabled = !busy) { Text("Clear") }
                 }
                 names.forEach { name ->
                     Row(Modifier.fillMaxWidth().clickable(enabled = !busy) {

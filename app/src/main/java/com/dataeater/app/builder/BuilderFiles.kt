@@ -11,6 +11,7 @@ import com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOut
 import com.tom_roush.pdfbox.text.PDFTextStripper
 import org.json.JSONObject
 import java.io.File
+import com.dataeater.app.ocr.OcrLanguage
 
 class BuilderFiles(private val context: Context) {
     data class Input(val uri: Uri, val name: String)
@@ -93,7 +94,8 @@ class BuilderFiles(private val context: Context) {
     fun record(uri: Uri): JSONObject = context.contentResolver.openInputStream(uri)?.use {
         JSONObject(BuilderCore.bounded(it, 65536).toString(Charsets.UTF_8))
     } ?: error("The key file could not be read.")
-    fun extract(input: Input, temporary: File): BuilderCore.Document {
+    fun extract(input: Input, temporary: File, ocrLanguage: OcrLanguage? = null,
+        progress: (page: Int, total: Int, ocr: Boolean) -> Unit = { _, _, _ -> }): BuilderCore.Document {
         require(supported(input.name)) { "Choose PDF, TXT or Markdown documents." }
         val source = File(temporary, "source-${java.util.UUID.randomUUID()}.${input.name.substringAfterLast('.')}")
         try {
@@ -130,16 +132,36 @@ class BuilderFiles(private val context: Context) {
                     outline(document.documentCatalog.documentOutline?.firstChild, emptyList(), 0)
                     val stripper = PDFTextStripper().apply { sortByPosition = true; paragraphEnd = "\n\n" }
                     val pages = mutableListOf<BuilderCore.Page>(); val metrics = mutableListOf<BuilderQuality.Metric>(); var omitted = 0; var textBytes = 0L; var contextPath = ""
-                    for (index in 1..document.numberOfPages) {
-                        BuilderCore.checkpoint(); if (headings.containsKey(index)) contextPath = headings.getValue(index)
-                        stripper.startPage = index; stripper.endPage = index
-                        val text = clean(stripper.getText(document)); textBytes += text.toByteArray().size
-                        require(textBytes <= BuilderCore.MAX_TEXT_BYTES) { "This PDF has too much text to build safely on the phone. Split it into smaller documents." }
-                        metrics.add(BuilderQuality.Metric(index, text.length, text.toByteArray(Charsets.UTF_8).size))
-                        if (text.length >= 100) pages.add(BuilderCore.Page(index, text, context = contextPath)) else omitted++
-                    }
+                    val ocr = ocrLanguage?.let { BuilderPdfOcr(context, source, it) }
+                    try {
+                        for (index in 1..document.numberOfPages) {
+                            BuilderCore.checkpoint(); if (headings.containsKey(index)) contextPath = headings.getValue(index)
+                            progress(index, document.numberOfPages, false)
+                            stripper.startPage = index; stripper.endPage = index
+                            val native = clean(stripper.getText(document))
+                            var text = native
+                            var reading: BuilderQuality.Ocr? = null
+                            if (ocr != null && BuilderOcrPolicy.needsOcr(native)) {
+                                progress(index, document.numberOfPages, true)
+                                val result = ocr.page(index)
+                                val choice = BuilderOcrPolicy.choose(native, clean(result.text))
+                                text = choice.text
+                                reading = BuilderQuality.Ocr(requireNotNull(ocrLanguage).code, choice.status, result.confidence)
+                            }
+                            val size = text.toByteArray(Charsets.UTF_8).size
+                            textBytes += size
+                            require(textBytes <= BuilderCore.MAX_TEXT_BYTES) { "This PDF has too much text to build safely on the phone. Split it into smaller documents." }
+                            metrics.add(BuilderQuality.Metric(index, text.length, size, reading))
+                            // Short accepted OCR title/label pages also keep their original page number.
+                            if (text.length >= 100 || reading?.status == "used") pages.add(BuilderCore.Page(index, text, context = contextPath)) else omitted++
+                        }
+                    } finally { ocr?.close() }
                     val sparse = pages.isEmpty() || pages.sumOf { it.text.length }.toLong() / document.numberOfPages < 200
-                    val warning = if (sparse) "${input.name}: little usable text. Scanned pages need OCR outside this app; missing content is not reconstructed." else if (omitted > 0) "${input.name}: $omitted pages had very little extractable text and were omitted. Compare them against the original." else ""
+                    val warnings = mutableListOf<String>()
+                    if (ocrLanguage == null && sparse) warnings.add("${input.name}: little usable text. Enable Read scanned PDFs (OCR) for image-only pages; missing content is not reconstructed.")
+                    if (omitted > 0) warnings.add("${input.name}: $omitted pages had very little usable text and were omitted. Compare them against the original.")
+                    if (metrics.any { it.ocr != null }) warnings.add("${input.name}: scanned-page recognition was attempted. Check names, numbers, units, warnings and reading order against the original pages.")
+                    val warning = warnings.joinToString("\n")
                     val metadata = document.documentInformation.title.orEmpty().trim()
                     val chosen = metadata.takeIf { it.length > 6 && it.any(Char::isLowerCase) } ?: title
                     BuilderCore.Document(chosen, input.name, fingerprint, document.numberOfPages, omitted, pages, warning, pageMetrics = metrics)

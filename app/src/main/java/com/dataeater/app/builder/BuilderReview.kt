@@ -33,7 +33,7 @@ object BuilderReview {
     fun export(documents: List<BuilderCore.Document>, folder: File, batchChars: Int, prompt: String) {
         require(!folder.exists()) { "Choose a new review workspace." }
         require(batchChars >= 1000) { "Batch size must be at least 1000 characters." }
-        require(documents.isNotEmpty() && documents.all { it.pages.isNotEmpty() && !it.warning.contains("OCR") }) { "Scanned or empty documents need OCR outside the app before review." }
+        require(documents.isNotEmpty() && documents.all { it.pages.isNotEmpty() }) { "No usable pages in a document. Enable scanned-PDF recognition or supply text before review." }
         require(documents.sumOf { it.pages.sumOf { p -> p.text.toByteArray().size.toLong() } } <= BuilderCore.MAX_TEXT_BYTES) { "Export a smaller document collection." }
         folder.mkdirs(); for (name in listOf("original", "reviewed", "notes")) File(folder, name).mkdir()
         val items = JSONArray()
@@ -61,12 +61,12 @@ object BuilderReview {
             items.put(JSONObject().put("id", "s${index + 1}").put("title", document.title).put("filename", document.filename)
                 .put("source_sha256", document.fingerprint).put("total_pdf_pages", document.totalPages).put("omitted_minimal_text_pages", document.omitted)
                 .put("page_contexts", contexts).put("parts", parts)
-                .put("page_metrics", JSONArray(document.pageMetrics.map { JSONObject().put("page", it.page).put("characters", it.characters).put("utf8_bytes", it.bytes) })))
+                .put("page_metrics", JSONArray(document.pageMetrics.map { it.json() })))
         }
         File(folder, "review.json").writeText(JSONObject().put("format", "dataeater-review").put("version", 1).put("documents", items).toString(2) + "\n")
         File(folder, "quality_report.json").writeText(BuilderQuality.report(documents, BuilderCore.Options("Review")).toString(2) + "\n")
         File(folder, "LLM_PROMPT.txt").writeText(prompt)
-        File(folder, "README.md").writeText("# Review extracted text\n\nKeep original/ and review.json unchanged. Give LLM_PROMPT.txt and one original batch to a reviewer. Save complete checked text in the matching reviewed/ file, and uncertainties in notes/. Preserve all page markers. Verify technical corrections against the PDF. Build using Build reviewed text in DataEater, or dataeater-builder build-reviewed THIS_FOLDER -o result.dataeater on Linux. No upload or OCR is performed.\n")
+        File(folder, "README.md").writeText("# Review extracted text\n\nKeep original/ and review.json unchanged. Give LLM_PROMPT.txt and one original batch to a reviewer. Save complete checked text in the matching reviewed/ file, and uncertainties in notes/. Preserve all page markers. Verify technical corrections against the PDF. Build using Build reviewed text in DataEater, or dataeater-builder build-reviewed THIS_FOLDER -o result.dataeater on Linux. No upload is performed. Page metrics record any OCR used during extraction; check recognised text against the source pages.\n")
     }
     data class Imported(val documents: List<BuilderCore.Document>, val numericChanges: Int)
     fun read(folder: File): Imported {
@@ -129,7 +129,12 @@ object BuilderReview {
                 val m = metricsJson.getJSONObject(i)
                 val n = m.getInt("page"); val chars = m.getInt("characters"); val size = m.getInt("utf8_bytes")
                 require(n in 1..total && chars in 0..BuilderCore.MAX_TEXT_BYTES && size in 0..BuilderCore.MAX_TEXT_BYTES) { "Invalid quality page inventory." }
-                BuilderQuality.Metric(n, chars, size)
+                val ocr = if (m.has("ocr")) {
+                    val reading = m.getJSONObject("ocr")
+                    require(reading.getString("engine") == "tesseract-5.5.3") { "Unsupported OCR inventory." }
+                    BuilderQuality.Ocr(reading.getString("language"), reading.getString("status"), reading.getInt("mean_confidence"))
+                } else null
+                BuilderQuality.Metric(n, chars, size, ocr)
             }
             require(metrics.map { it.page }.distinct().size == metrics.size) { "Duplicate quality page." }
             documents.add(BuilderCore.Document(source.getString("title"), source.optString("filename"), source.optString("source_sha256"),

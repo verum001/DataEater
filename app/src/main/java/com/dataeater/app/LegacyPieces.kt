@@ -1,5 +1,6 @@
 package com.dataeater.app
 
+import com.dataeater.app.ui.theme.DataEaterButton
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
@@ -108,7 +109,7 @@ internal fun DatabasePickerCard(
                     style = MaterialTheme.typography.bodySmall,
                 )
             } else {
-                OutlinedButton(onClick = { onSelect(DatabaseChoice.ALL) }) {
+                DataEaterButton(onClick = { onSelect(DatabaseChoice.ALL) }) {
                     Text(DatabaseChoice.ALL)
                 }
                 for (candidate in available) {
@@ -156,7 +157,7 @@ internal fun DatabasePickerCard(
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         } else {
-                            OutlinedButton(onClick = { onSelect(candidate.displayName) }) {
+                            DataEaterButton(onClick = { onSelect(candidate.displayName) }) {
                                 Text("Use")
                             }
                         }

@@ -1,5 +1,6 @@
 package com.dataeater.app
 
+import com.dataeater.app.ui.theme.DataEaterButton
 import com.dataeater.app.builder.BuilderScreen
 import com.dataeater.app.builder.BuilderViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -1159,8 +1160,8 @@ fun DataEaterScreen(
     pendingPaidModel?.let { model ->
         AlertDialog(onDismissRequest = { pendingPaidModel = null }, title = { Text("Use paid model?") },
             text = { Text("${model.name} uses your OpenRouter credits.") },
-            confirmButton = { TextButton(onClick = { pendingPaidModel = null; useOpenRouter("", model, routerSettings.allowDatabase) }) { Text("Use model") } },
-            dismissButton = { TextButton(onClick = { pendingPaidModel = null }) { Text("Cancel") } })
+            confirmButton = { DataEaterButton(onClick = { pendingPaidModel = null; useOpenRouter("", model, routerSettings.allowDatabase) }) { Text("Use model") } },
+            dismissButton = { DataEaterButton(onClick = { pendingPaidModel = null }) { Text("Cancel") } })
     }
 
     fun useLocalAi() {
@@ -1509,7 +1510,7 @@ fun DataEaterScreen(
                     inputBudget = inputBudget,
                     replan = replan,
                 )
-                aiStatus = decision.warning
+                aiStatus = ""
             }
         }
     }
@@ -1785,6 +1786,16 @@ fun DataEaterScreen(
         else -> SessionDrawer(
             visible = showDrawer, sessions = remember(current, sessionListVersion) { sessions.sessions }, activeId = current.id,
             onSelect = { switchSession(it) }, onNewSession = { newSession() },
+            onPin = { id, pinned ->
+                if (isBusy || isDatabaseBusy) false else sessions.setPinned(id, pinned).also { saved ->
+                    if (saved) { sessionListVersion += 1; session = sessions.active }
+                }
+            },
+            onRename = { id, title ->
+                if (isBusy || isDatabaseBusy) false else sessions.rename(id, title).also { saved ->
+                    if (saved) { sessionListVersion += 1; session = sessions.active }
+                }
+            },
             deletionEnabled = !isBusy && !isDatabaseBusy,
             onDelete = { id ->
                 if (isBusy || isDatabaseBusy) false else runCatching {
@@ -1928,7 +1939,7 @@ private fun ProblemScreen(message: String, onChooseDatabase: (() -> Unit)? = nul
         )
         if (onChooseDatabase != null) {
             Spacer(Modifier.height(24.dp))
-            Button(onClick = onChooseDatabase) { Text("Choose a database") }
+            DataEaterButton(onClick = onChooseDatabase) { Text("Choose a database") }
         }
     }
 }

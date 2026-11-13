@@ -69,6 +69,9 @@ data class Session(
      * Written on every change, so it survives a restart.
      */
     val updatedAt: Long = 0L,
+
+    /** Pinned conversations stay above other sessions in the drawer. */
+    val pinned: Boolean = false,
 ) {
     /** True when there is nothing to show yet. */
     val isEmpty: Boolean get() = messages.isEmpty()

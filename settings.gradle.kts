@@ -21,3 +21,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "DataEater"
 include(":app")
+
+include(":ocr-native")

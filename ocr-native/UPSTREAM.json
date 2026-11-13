@@ -1,0 +1,24 @@
+{
+  "repository": "https://github.com/adaptech-cz/Tesseract4Android",
+  "tag": "4.9.0",
+  "commit": "15c534717b1cb58261b58d4e4c1200c7f81f668c",
+  "components": {
+    "Tesseract": {
+      "version": "5.5.3",
+      "repository": "https://github.com/tesseract-ocr/tesseract",
+      "commit": "db0ec62f81b0737fbbe184d8fea40af5738f8eef"
+    },
+    "Leptonica": {
+      "version": "1.87.0",
+      "repository": "https://github.com/DanBloomberg/leptonica",
+      "commit": "13275a278eb55b5746e33f95fbf5a2c8f604b3ab"
+    }
+  },
+  "changes": [
+    "Runtime library sources, headers, CMake files and legal notices retained; samples, tests, training tools and documentation assets omitted.",
+    "Gradle configuration replaced with a local source module.",
+    "Tesseract and Leptonica core sources replaced by the pinned official releases above.",
+    "Bitmap input only: libjpeg and libpng omitted, Leptonica JPEG/PNG codecs disabled, corresponding Java library loads removed. PDF image decoding is performed by Android PdfRenderer.",
+    "C++20 selected, matching the updated Tesseract release on a supporting compiler."
+  ]
+}

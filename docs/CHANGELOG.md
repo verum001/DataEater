@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.7.8 — 13 November 2026
+- Optional offline OCR reads scanned PDF pages during database creation in English, Russian or both.
+- Optimisation ZIP preparation uses the same recognised text and records OCR provenance in quality reports.
+- No AI model, account or network is needed for OCR. Check technical values and layout against the source.
+- Includes the accumulated stable interface improvements: session pin/rename menus and full model/database settings screens.
+
+
 ## 0.1.7.7 — 21 October 2026
 
 Database creation includes offline coverage and review-change reports in Android, with a Save quality report action. Reports identify omitted pages, PDF layout-review needs and changes to restrictions, units, identifiers and numbered steps. Existing page markers, fingerprints and format-v1 reader compatibility are retained. Private reports are encrypted with database source metadata. AI is optional; automatic flags are not technical approval.

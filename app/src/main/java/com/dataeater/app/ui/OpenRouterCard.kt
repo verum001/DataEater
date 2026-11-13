@@ -1,5 +1,6 @@
 package com.dataeater.app.ui
 
+import com.dataeater.app.ui.theme.DataEaterButton
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
@@ -29,8 +30,8 @@ fun OpenRouterCard(settings: OpenRouterSettings, active: Boolean, busy: Boolean,
             Text(if (active) "OpenRouter · Online" else "On device · Offline")
             Text("Online AI needs internet and an OpenRouter API key.", style = MaterialTheme.typography.bodySmall)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onLocal, enabled = active && !busy) { Text("On device") }
-                Button(onClick = { setup = true }, enabled = !busy) { Text(if (active) "OpenRouter settings" else "Use OpenRouter") }
+                DataEaterButton(onClick = { if (active) onLocal() }, enabled = !busy, selected = !active, modifier = Modifier.weight(1f)) { Text("On device") }
+                DataEaterButton(onClick = { setup = true }, enabled = !busy, selected = active, modifier = Modifier.weight(1f)) { Text(if (active) "OpenRouter settings" else "Use OpenRouter") }
             }
         }
     }
@@ -54,17 +55,17 @@ private fun OpenRouterSetup(settings: OpenRouterSettings, busy: Boolean, onDismi
             OutlinedTextField(value = key, onValueChange = { if (it.length <= 4096) key = it },
                 label = { Text("API key") }, placeholder = { Text(if (settings.hasKey) "Saved key · leave blank to keep" else "Paste your key") },
                 visualTransformation = PasswordVisualTransformation(), singleLine = true, modifier = Modifier.fillMaxWidth())
-            TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://openrouter.ai/settings/keys"))) }) { Text("Get an API key") }
+            DataEaterButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://openrouter.ai/settings/keys"))) }) { Text("Get an API key") }
             Text("Model: ${chosen.name}")
             Text(if (chosen.free) "Free model · account limits apply" else "Uses OpenRouter credits", style = MaterialTheme.typography.bodySmall)
-            OutlinedButton(onClick = { choosing = true }) { Text("Choose online model") }
+            DataEaterButton(onClick = { choosing = true }) { Text("Choose online model") }
             Row { Checkbox(database, { database = it }); Text("Allow selected database excerpts online", Modifier.weight(1f).padding(top = 12.dp)) }
             if (database) Text("Relevant passages may include confidential or licensed content. Enable only for documents you may share with the provider.", style = MaterialTheme.typography.bodySmall)
             Row { Checkbox(acknowledged, { acknowledged = it }); Text("I understand what will be sent online", Modifier.weight(1f).padding(top = 12.dp)) }
-            if (settings.hasKey) TextButton(onClick = onRemove, enabled = !busy) { Text("Remove saved key") }
+            if (settings.hasKey) DataEaterButton(onClick = onRemove, enabled = !busy) { Text("Remove saved key") }
         }
-    }, confirmButton = { TextButton(onClick = { onUse(key, chosen, database) }, enabled = !busy && acknowledged && (settings.hasKey || key.isNotBlank())) { Text("Use online AI") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
+    }, confirmButton = { DataEaterButton(onClick = { onUse(key, chosen, database) }, enabled = !busy && acknowledged && (settings.hasKey || key.isNotBlank())) { Text("Use online AI") } },
+        dismissButton = { DataEaterButton(onClick = onDismiss) { Text("Cancel") } })
     if (choosing) OnlineModelPicker(onChoose = { chosen = it; choosing = false }, onDismiss = { choosing = false })
 }
 
@@ -91,17 +92,17 @@ fun OnlineModelPicker(onChoose: (OpenRouterProtocol.Model) -> Unit, onDismiss: (
             OutlinedTextField(search, { search = it.take(160) }, label = { Text("Search models") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Row { Checkbox(freeOnly, { freeOnly = it }); Text("Free models only", Modifier.padding(top = 12.dp)) }
             if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-            error?.let { Text(it); TextButton(onClick = { refresh() }, enabled = !loading) { Text("Retry") } }
+            error?.let { Text(it); DataEaterButton(onClick = { refresh() }, enabled = !loading) { Text("Retry") } }
             LazyColumn(Modifier.heightIn(max = 320.dp)) {
-                item { TextButton(onClick = { onChoose(OpenRouterProtocol.Model("openrouter/free", "Free models", true)) }) { Text("Free models · automatic choice") } }
+                item { DataEaterButton(onClick = { onChoose(OpenRouterProtocol.Model("openrouter/free", "Free models", true)) }) { Text("Free models · automatic choice") } }
                 val filtered = models.filter { (!freeOnly || it.free) && (it.name.contains(search, true) || it.id.contains(search, true)) }
                 items(filtered, key = { it.id }) { model ->
-                    TextButton(onClick = { onChoose(model) }, modifier = Modifier.fillMaxWidth()) {
+                    DataEaterButton(onClick = { onChoose(model) }, modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.fillMaxWidth()) { Text(model.name); Text(if (model.free) "Free" else "Uses credits", style = MaterialTheme.typography.bodySmall) }
                     }
                 }
                 if (!loading && models.isNotEmpty() && filtered.isEmpty()) item { Text("No matching models.") }
             }
         }
-    }, confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } })
+    }, confirmButton = { DataEaterButton(onClick = onDismiss) { Text("Done") } })
 }

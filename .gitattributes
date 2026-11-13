@@ -1,0 +1,3 @@
+
+app/src/androidTest/assets/pdf-names/*.pdf binary
+app/src/main/assets/ocr/*.traineddata binary

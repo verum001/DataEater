@@ -5,7 +5,7 @@ DataEater lets you ask AI questions about documents and receive answers with doc
 <li>Chat with compatible local AI models.</li>
 <li>Search one or several DataEater knowledge databases.</li>
 <li>Choose strict, balanced or flexible document grounding.</li>
-<li>Create databases from PDF, text and Markdown files on the phone.</li>
+<li>Create databases from PDF, text and Markdown files on the phone, with optional offline English/Russian OCR for scanned pages.</li>
 <li>Open encrypted databases with signed, device-bound access codes.</li>
 <li>Compare installed models with local benchmark reports.</li>
 <li>Save conversations and copy answers and citations.</li>

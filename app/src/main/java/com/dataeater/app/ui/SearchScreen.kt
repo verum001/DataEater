@@ -1,5 +1,6 @@
 package com.dataeater.app.ui
 
+import com.dataeater.app.ui.theme.DataEaterButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -311,7 +312,7 @@ private fun LockedDatabaseNotice(name: String, onUnlock: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
             )
             Spacer(Modifier.height(12.dp))
-            Button(onClick = onUnlock, modifier = Modifier.fillMaxWidth()) {
+            DataEaterButton(onClick = onUnlock, modifier = Modifier.fillMaxWidth()) {
                 Text("Enter my Unlock Code")
             }
         }

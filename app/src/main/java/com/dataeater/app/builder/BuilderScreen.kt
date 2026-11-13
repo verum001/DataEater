@@ -1,5 +1,6 @@
 package com.dataeater.app.builder
 
+import com.dataeater.app.ui.theme.DataEaterButton
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -65,18 +66,18 @@ fun AdvancedBuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDa
     BackHandler { if (help) help = false else if (batchEditor != null) batchEditor = null else back() }
     if (confirmExit) AlertDialog(onDismissRequest = { confirmExit = false }, title = { Text("Operation running") },
         text = { Text("Cancel the operation before leaving. Existing databases and keys will be kept.") },
-        confirmButton = { TextButton(onClick = { model.cancel(); confirmExit = false }) { Text("Cancel operation") } },
-        dismissButton = { TextButton(onClick = { confirmExit = false }) { Text("Keep working") } })
+        confirmButton = { DataEaterButton(onClick = { model.cancel(); confirmExit = false }) { Text("Cancel operation") } },
+        dismissButton = { DataEaterButton(onClick = { confirmExit = false }) { Text("Keep working") } })
     if (confirmReplace) AlertDialog(onDismissRequest = { confirmReplace = false }, title = { Text("Use a new content key?") },
         text = { Text("Old access codes will not unlock this new copy. The old key and database are kept.") },
-        confirmButton = { TextButton(onClick = { confirmReplace = false; model.run(true, legacyReview) }) { Text("Create new copy") } },
-        dismissButton = { TextButton(onClick = { confirmReplace = false }) { Text("Cancel") } })
+        confirmButton = { DataEaterButton(onClick = { confirmReplace = false; model.run(true, legacyReview) }) { Text("Create new copy") } },
+        dismissButton = { DataEaterButton(onClick = { confirmReplace = false }) { Text("Cancel") } })
     privateExport?.let { item -> AlertDialog(onDismissRequest = { privateExport = null }, title = { Text("Export private key?") },
         text = { Text("Keep the exported file in a secure backup. Never publish it or send it to a customer. Uninstalling DataEater removes keys stored only in the app.") },
-        confirmButton = { TextButton(onClick = {
+        confirmButton = { DataEaterButton(onClick = {
             privateExport = null
             requestExport(BuilderViewModel.Export(item = item), BuilderCore.id(item.name) + if (item.kind == "signing") ".key" else ".secret")
-        }) { Text("Save backup") } }, dismissButton = { TextButton(onClick = { privateExport = null }) { Text("Cancel") } }) }
+        }) { Text("Save backup") } }, dismissButton = { DataEaterButton(onClick = { privateExport = null }) { Text("Cancel") } }) }
     if (help) BuilderHelp(onBack = { help = false })
     batchEditor?.let { editor -> BuilderEditor(editor, state.busy, editorError, onDismiss = { batchEditor = null; editorError = null }, onSave = { text ->
         try {
@@ -92,10 +93,10 @@ fun AdvancedBuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDa
     }) }
     Scaffold(topBar = { TopAppBar(title = { Text("Create database") }, navigationIcon = {
         IconButton(onClick = { back() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-    }, actions = { TextButton(onClick = { help = true }) { Text("Help") } }) }) { padding ->
+    }, actions = { DataEaterButton(onClick = { help = true }) { Text("Help") } }) }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).imePadding().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Box {
-                OutlinedButton(onClick = { tasks = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                DataEaterButton(onClick = { tasks = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                     Text(state.task.title, Modifier.weight(1f)); Icon(Icons.Default.ArrowDropDown, "Choose task")
                 }
                 DropdownMenu(expanded = tasks, onDismissRequest = { tasks = false }, modifier = Modifier.heightIn(max = 400.dp)) {
@@ -110,15 +111,16 @@ fun AdvancedBuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDa
                     when (state.task) {
                         BuilderViewModel.Task.BUILD, BuilderViewModel.Task.REVIEW -> {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedButton(onClick = { documents.launch(arrayOf("*/*")) }, enabled = !state.busy) { Text("Add documents") }
-                                OutlinedButton(onClick = { folder.launch(null) }, enabled = !state.busy) { Text("Choose folder") }
+                                DataEaterButton(onClick = { documents.launch(arrayOf("*/*")) }, enabled = !state.busy) { Text("Add documents") }
+                                DataEaterButton(onClick = { folder.launch(null) }, enabled = !state.busy) { Text("Choose folder") }
                             }
-                            Text("PDF, text or Markdown. Scanned PDFs need OCR elsewhere.", style = MaterialTheme.typography.bodySmall)
+                            Text("PDF, text or Markdown.", style = MaterialTheme.typography.bodySmall)
+                            BuilderOcrSettings(model)
                             Text("${state.inputs.size} document(s) selected")
                             for (input in state.inputs.take(20)) {
                                 Row(Modifier.fillMaxWidth()) {
                                     Text(input.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                                    TextButton(onClick = { model.removeInput(input.uri) }, enabled = !state.busy) { Text("Remove") }
+                                    DataEaterButton(onClick = { model.removeInput(input.uri) }, enabled = !state.busy) { Text("Remove") }
                                 }
                             }
                             if (state.inputs.size > 20) Text("And ${state.inputs.size - 20} more documents.")
@@ -128,13 +130,13 @@ fun AdvancedBuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDa
                             Choice("Review workspace", state.reviews.firstOrNull { it.id == state.reviewId }?.name,
                                 state.reviews.map { it.id to it.name }, !state.busy, model::review)
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedButton(onClick = { reviewZip.launch(arrayOf("*/*")) }, enabled = !state.busy) { Text("Import review ZIP") }
-                                OutlinedButton(onClick = { reviewFolder.launch(null) }, enabled = !state.busy) { Text("Import review folder") }
+                                DataEaterButton(onClick = { reviewZip.launch(arrayOf("*/*")) }, enabled = !state.busy) { Text("Import review ZIP") }
+                                DataEaterButton(onClick = { reviewFolder.launch(null) }, enabled = !state.busy) { Text("Import review folder") }
                             }
                             Field("Database name", "name", model)
                         }
                         BuilderViewModel.Task.INSPECT, BuilderViewModel.Task.ENCRYPT, BuilderViewModel.Task.LICENCE -> {
-                            OutlinedButton(onClick = { database.launch(arrayOf("*/*")) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+                            DataEaterButton(onClick = { database.launch(arrayOf("*/*")) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                                 Text(state.database?.name ?: "Choose database")
                             }
                             if (state.task != BuilderViewModel.Task.INSPECT) {
@@ -157,7 +159,7 @@ fun AdvancedBuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDa
                         }
                     }
                     if (state.task != BuilderViewModel.Task.INSPECT && state.task != BuilderViewModel.Task.KEY) {
-                        TextButton(onClick = { advanced = !advanced }, enabled = !state.busy) { Text(if (advanced) "Hide advanced options" else "Advanced options") }
+                        DataEaterButton(onClick = { advanced = !advanced }, enabled = !state.busy) { Text(if (advanced) "Hide advanced options" else "Advanced options") }
                         if (advanced) when (state.task) {
                             BuilderViewModel.Task.BUILD, BuilderViewModel.Task.REVIEWED -> {
                                 Field("Description", "description", model, lines = 2)
@@ -176,18 +178,18 @@ fun AdvancedBuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDa
                                 KeyChoice("Reuse content key (optional)", "content", model, onImport = {
                                     model.pendingKeyKind = "content"; key.launch(arrayOf("*/*"))
                                 })
-                                TextButton(onClick = { model.secret(null) }, enabled = !state.busy) { Text("Use a fresh content key") }
+                                DataEaterButton(onClick = { model.secret(null) }, enabled = !state.busy) { Text("Use a fresh content key") }
                                 Row { Checkbox(replacing, onCheckedChange = { replacing = it }, enabled = !state.busy); Text("New key for this copy", Modifier.padding(top = 12.dp)) }
                             }
                             BuilderViewModel.Task.LICENCE -> Field("Expiry", "expiry", model)
                             else -> Unit
                         }
                     }
-                    Button(onClick = { if (replacing && state.task == BuilderViewModel.Task.ENCRYPT) confirmReplace = true else model.run(false, legacyReview) },
-                        enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(state.task.action) }
+                    DataEaterButton(onClick = { if (replacing && state.task == BuilderViewModel.Task.ENCRYPT) confirmReplace = true else model.run(false, legacyReview) },
+                        enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(state.task.action) }
                     if (state.busy) {
                         LinearProgressIndicator(Modifier.fillMaxWidth())
-                        OutlinedButton(onClick = model::cancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel operation") }
+                        DataEaterButton(onClick = model::cancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel operation") }
                     }
                     if (state.status.isNotBlank()) Text(state.status)
                 }
@@ -198,8 +200,8 @@ fun AdvancedBuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDa
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Review: ${review.name}", fontWeight = FontWeight.Bold)
                         Text("Keep originals unchanged. Check edits against the PDF, especially numbers and warnings.")
-                        OutlinedButton(onClick = { requestExport(BuilderViewModel.Export(reviewId = review.id), BuilderCore.id(review.name) + "-review.zip") }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Save review ZIP") }
-                        OutlinedButton(onClick = { requestExport(BuilderViewModel.Export(prompt = true), "LLM_PROMPT.txt") }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Save review prompt") }
+                        DataEaterButton(onClick = { requestExport(BuilderViewModel.Export(reviewId = review.id), BuilderCore.id(review.name) + "-review.zip") }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Save review ZIP") }
+                        DataEaterButton(onClick = { requestExport(BuilderViewModel.Export(prompt = true), "LLM_PROMPT.txt") }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Save review prompt") }
                         val batches = remember(review.id, state.busy) { try { model.batches(review.id) } catch (_: Exception) { emptyList() } }
                         var selectedBatch by remember(review.id) { mutableStateOf<String?>(null) }
                         val selected = selectedBatch?.takeIf { it in batches } ?: batches.firstOrNull()
@@ -207,13 +209,13 @@ fun AdvancedBuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDa
                             batches.mapIndexed { index, name -> name to "Batch ${index + 1} of ${batches.size}" }, !state.busy) { selectedBatch = it }
                         selected?.let { name ->
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(onClick = { try { batchEditor = Editor("Edit reviewed text", review.id, name, model.readBatch(review.id, name)) } catch (e: Exception) { editorError = e.message } }, enabled = !state.busy) { Text("Edit") }
-                                TextButton(onClick = { try { batchEditor = Editor("Original text", review.id, name, model.readBatch(review.id, name, true), readOnly = true) } catch (e: Exception) { editorError = e.message } }, enabled = !state.busy) { Text("Original") }
-                                TextButton(onClick = { model.pendingBatch = review.id to name; batchFile.launch(arrayOf("text/*", "application/octet-stream")) }, enabled = !state.busy) { Text("Import edit") }
-                                TextButton(onClick = { batchEditor = Editor("Uncertainty notes", review.id, name, model.readNote(review.id, name), notes = true) }, enabled = !state.busy) { Text("Notes") }
+                                DataEaterButton(onClick = { try { batchEditor = Editor("Edit reviewed text", review.id, name, model.readBatch(review.id, name)) } catch (e: Exception) { editorError = e.message } }, enabled = !state.busy) { Text("Edit") }
+                                DataEaterButton(onClick = { try { batchEditor = Editor("Original text", review.id, name, model.readBatch(review.id, name, true), readOnly = true) } catch (e: Exception) { editorError = e.message } }, enabled = !state.busy) { Text("Original") }
+                                DataEaterButton(onClick = { model.pendingBatch = review.id to name; batchFile.launch(arrayOf("text/*", "application/octet-stream")) }, enabled = !state.busy) { Text("Import edit") }
+                                DataEaterButton(onClick = { batchEditor = Editor("Uncertainty notes", review.id, name, model.readNote(review.id, name), notes = true) }, enabled = !state.busy) { Text("Notes") }
                             }
                         }
-                        Button(onClick = { model.review(review.id); model.task(BuilderViewModel.Task.REVIEWED) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Build reviewed text") }
+                        DataEaterButton(onClick = { model.review(review.id); model.task(BuilderViewModel.Task.REVIEWED) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Build reviewed text") }
                     }
                 }
             }
@@ -221,20 +223,20 @@ fun AdvancedBuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDa
                 DataEaterCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         result.file?.let { file ->
-                            Button(onClick = { requestExport(BuilderViewModel.Export(file = file), file.name) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Save file") }
+                            DataEaterButton(onClick = { requestExport(BuilderViewModel.Export(file = file), file.name) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Save file") }
                             if (file.extension == "dataeater") {
-                                OutlinedButton(onClick = { model.useDatabase(file, onDatabaseReady) }, enabled = !state.busy && canUseDatabase, modifier = Modifier.fillMaxWidth()) { Text("Use in DataEater") }
+                                DataEaterButton(onClick = { model.useDatabase(file, onDatabaseReady) }, enabled = !state.busy && canUseDatabase, modifier = Modifier.fillMaxWidth()) { Text("Use in DataEater") }
                                 if (!canUseDatabase) Text("Grant folder access in Settings to use this database, or save it to the DataEater folder.", style = MaterialTheme.typography.bodySmall)
                             } else if (file.extension == "lic") {
-                                OutlinedButton(onClick = { batchEditor = Editor("Access code", null, file.name, file.readText(), readOnly = true) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("View access code") }
+                                DataEaterButton(onClick = { batchEditor = Editor("Access code", null, file.name, file.readText(), readOnly = true) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("View access code") }
                             }
                         }
                         result.quality?.let { report ->
-                            OutlinedButton(onClick = { requestExport(BuilderViewModel.Export(file = report), report.name) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Save quality report") }
+                            DataEaterButton(onClick = { requestExport(BuilderViewModel.Export(file = report), report.name) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Save quality report") }
                         }
-                        result.signing?.let { item -> OutlinedButton(onClick = { privateExport = item }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Back up signing key") } }
-                        result.secret?.let { item -> OutlinedButton(onClick = { privateExport = item }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Back up content key") } }
-                        TextButton(onClick = { details = !details }) { Text(if (details) "Hide details" else "Details") }
+                        result.signing?.let { item -> DataEaterButton(onClick = { privateExport = item }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Back up signing key") } }
+                        result.secret?.let { item -> DataEaterButton(onClick = { privateExport = item }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Back up content key") } }
+                        DataEaterButton(onClick = { details = !details }) { Text(if (details) "Hide details" else "Details") }
                         if (details) SelectionContainer { Text(result.text) }
                     }
                 }
@@ -244,7 +246,7 @@ fun AdvancedBuilderScreen(model: BuilderViewModel, canUseDatabase: Boolean, onDa
                 if (saved.isNotEmpty()) DataEaterCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Saved private keys", fontWeight = FontWeight.Bold)
-                        for (item in saved) OutlinedButton(onClick = { privateExport = item }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+                        for (item in saved) DataEaterButton(onClick = { privateExport = item }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                             Text("Back up ${item.name} · ${if (item.kind == "signing") "signing" else "content"}")
                         }
                     }
@@ -266,7 +268,7 @@ private fun Field(label: String, key: String, model: BuilderViewModel, lines: In
 private fun Choice(label: String, selected: String?, items: List<Pair<String, String>>, enabled: Boolean, onChoose: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        OutlinedButton(onClick = { expanded = true }, enabled = enabled && items.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
+        DataEaterButton(onClick = { expanded = true }, enabled = enabled && items.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
             Text("$label: ${selected ?: "Choose"}", Modifier.weight(1f)); Icon(Icons.Default.ArrowDropDown, "Choose")
         }
         DropdownMenu(expanded, onDismissRequest = { expanded = false }, modifier = Modifier.heightIn(max = 320.dp)) {
@@ -281,7 +283,7 @@ private fun KeyChoice(label: String, kind: String, model: BuilderViewModel, onIm
     Choice(label, items.firstOrNull { it.id == selected }?.name, items.map { it.id to (it.name + " · " + it.id.take(4)) }, !state.busy) {
         if (kind == "signing") model.signing(it) else model.secret(it)
     }
-    TextButton(onClick = onImport, enabled = !state.busy) { Text("Import ${if (kind == "signing") "signing" else "content"} key") }
+    DataEaterButton(onClick = onImport, enabled = !state.busy) { Text("Import ${if (kind == "signing") "signing" else "content"} key") }
 }
 private data class Editor(val title: String, val reviewId: String?, val name: String, val initial: String, val readOnly: Boolean = false, val notes: Boolean = false)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -292,8 +294,8 @@ private fun BuilderEditor(editor: Editor, busy: Boolean, error: String?, onDismi
     fun leave() { if (!editor.readOnly && text != editor.initial) discard = true else onDismiss() }
     if (discard) AlertDialog(onDismissRequest = { discard = false }, title = { Text("Discard unsaved edits?") },
         text = { Text("Save the batch before leaving to keep these changes.") },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Discard") } },
-        dismissButton = { TextButton(onClick = { discard = false }) { Text("Keep editing") } })
+        confirmButton = { DataEaterButton(onClick = onDismiss) { Text("Discard") } },
+        dismissButton = { DataEaterButton(onClick = { discard = false }) { Text("Keep editing") } })
     Dialog(onDismissRequest = { leave() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         BackHandler { leave() }
         Scaffold(topBar = { TopAppBar(title = { Text(editor.title) }, navigationIcon = {
@@ -304,8 +306,8 @@ private fun BuilderEditor(editor: Editor, busy: Boolean, error: String?, onDismi
                 OutlinedTextField(text, onValueChange = { if (it.toByteArray().size <= 2 * 1024 * 1024) text = it }, readOnly = editor.readOnly,
                     modifier = Modifier.fillMaxWidth().weight(1f))
                 if (error != null) Text(error, color = MaterialTheme.colorScheme.error)
-                if (!editor.readOnly) Button(onClick = { onSave(text) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Save") }
-                else OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Close") }
+                if (!editor.readOnly) DataEaterButton(onClick = { onSave(text) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Save") }
+                else DataEaterButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Close") }
             }
         }
     }
@@ -326,7 +328,7 @@ private fun BuilderHelp(onBack: () -> Unit) {
                 if (text != null) SelectionContainer { Text(text, style = MaterialTheme.typography.bodyLarge) }
                 else for (name in names) {
                     val title = remember(name) { context.assets.open("builder/help/$name").bufferedReader().use { it.readLine() } }
-                    OutlinedButton(onClick = { topic = name }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text(title) }
+                    DataEaterButton(onClick = { topic = name }, modifier = Modifier.fillMaxWidth()) { Text(title) }
                 }
             }
         }

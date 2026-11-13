@@ -4,14 +4,12 @@
 
 Use the versions declared in `gradle/libs.versions.toml` and the Gradle wrapper.
 The current build uses Gradle 9.6.0, Android Gradle Plugin 9.4.1, Kotlin 2.4.20,
-LiteRT-LM 0.17.1 and Android API 37. Use a full JDK 21 or newer; a JRE without
-`javac` is insufficient. The release checks are verified with JDK 25. Install
+LiteRT-LM 0.17.1 and Android API 37. The daemon toolchain is JDK 25. Install
 Android SDK platform 37 and build-tools 36.0.0; configure `ANDROID_HOME`, or an
 ignored `local.properties` file containing `sdk.dir=/path/to/Android/Sdk`.
 Dependencies resolve from Google Maven, Maven Central and the Gradle plugin portal.
 Initial setup needs internet access; `--offline` works only after dependencies
-are cached. `JAVA_HOME` can select an installed JDK. The build does not download
-a JDK or use an external toolchain resolver.
+and toolchains are cached. `JAVA_HOME` can select an installed JDK.
 
 ## Commands
 
@@ -76,3 +74,7 @@ and replaces the displayed source list; it does not truncate an individual passa
 Do not upload personal chats, real documents, model weights or signing material
 with a bug report. Use an invented minimal fixture and include toolchain versions,
 Android/device details, exact commands and the observed error.
+
+## OCR source build
+
+Database OCR builds Tesseract and Leptonica from the pinned `ocr-native` sources. Install NDK 27.2.12479018 and CMake 3.22.1 alongside Android SDK 37. English and Russian language data is bundled with checksums and licences. No OCR service or prebuilt OCR native dependency is used. See [OCR](OCR.md) and [native build details](../ocr-native/README.md).
